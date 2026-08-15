@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: answerthis
+          POSTGRES_PASSWORD: answerthis
+          POSTGRES_DB: answerthis
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U answerthis -d answerthis"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the api image
+        run: docker build -t api ./backend
+
+      - name: Lint
+        run: docker run --rm -v "$PWD/backend:/srv" api sh -c "ruff check app tests && ruff format --check app tests"
+
+      - name: Typecheck
+        run: docker run --rm -v "$PWD/backend:/srv" api mypy app
+
+      - name: Test
+        run: |
+          docker run --rm --network host \
+            -v "$PWD/backend:/srv" -v "$PWD/data:/data" \
+            -v "$PWD/.env.example:/repo/.env.example:ro" \
+            -v "$PWD/web/lib/api/openapi.json:/repo/web/lib/api/openapi.json:ro" \
+            -e DATABASE_URL=postgresql+psycopg://answerthis:answerthis@localhost:5432/answerthis \
+            -e DATA_DIR=/data \
+            api pytest -m "not slow" -q
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+      - name: Verify generated API types are current
+        run: |
+          pnpm client
+          git diff --exit-code -- lib/api/schema.d.ts
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - name: Audit
+        run: pnpm audit --audit-level high
+
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start the acceptance stack
+        run: |
+          cp .env.example .env
+          docker compose up --build -d --wait api
+      - name: Run the deterministic acceptance workflow
+        run: docker compose exec -T api pytest -m slow -q
+      - name: Server logs on failure
+        if: failure()
+        run: docker compose logs api grobid
+      - name: Tear down the acceptance stack
+        if: always()
+        run: docker compose down -v

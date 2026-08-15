@@ -44,10 +44,17 @@ from app.settings import get_settings
 from tests.support.llm import ScriptedLLM
 from tests.test_export import pandoc_only
 
-pytestmark = [pytest.mark.usefixtures("database"), pytest.mark.slow]
-
 CORPUS_PDF = Path(__file__).resolve().parents[2] / "evals" / "papers" / "C_numeric_dense.pdf"
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "providers"
+
+pytestmark = [
+    pytest.mark.usefixtures("database"),
+    pytest.mark.slow,
+    pytest.mark.skipif(
+        not CORPUS_PDF.exists(),
+        reason="the acceptance corpus is excluded from this checkout",
+    ),
+]
 
 
 @pytest.fixture

@@ -6,7 +6,7 @@ API     := $(COMPOSE) exec -T api
 API_RUN := $(COMPOSE) run --rm -T api
 
 .DEFAULT_GOAL := help
-.PHONY: help up down logs ready test test-slow web-prod web-dev live-smoke eval corpus \
+.PHONY: help up down logs ready test test-slow web-prod web-dev live-smoke \
         lint typecheck fmt client shell db clean
 
 help:
@@ -21,8 +21,6 @@ help:
 	@printf '  \033[1m%-13s\033[0m %s\n' web-prod 'Serve a production web build (for screenshots)'
 	@printf '  \033[1m%-13s\033[0m %s\n' web-dev 'Restore the development web server'
 	@printf '  \033[1m%-13s\033[0m %s\n' live-smoke 'Real LLM + real providers. Never part of make test.'
-	@printf '  \033[1m%-13s\033[0m %s\n' eval 'Run the parser evaluation and write evals/results/'
-	@printf '  \033[1m%-13s\033[0m %s\n' corpus 'Fetch the three-paper evaluation corpus from arXiv'
 	@printf '  \033[1m%-13s\033[0m %s\n' lint 'ruff + eslint'
 	@printf '  \033[1m%-13s\033[0m %s\n' typecheck 'mypy --strict on domain/ + services/, tsc on web/'
 	@printf '  \033[1m%-13s\033[0m %s\n' fmt 'Format both sides'
@@ -72,12 +70,6 @@ web-dev:
 
 live-smoke:
 	$(API) python -m app.scripts.live_smoke
-
-eval:
-	$(API) python /evals/run_eval.py
-
-corpus:
-	$(API) python -m app.scripts.fetch_corpus
 
 lint:
 	$(API_RUN) ruff check app tests

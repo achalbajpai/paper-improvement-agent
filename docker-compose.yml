@@ -48,9 +48,6 @@ services:
     volumes:
       - ./backend:/srv
       - ./data:/data
-      - ./evals:/evals
-      - ./docs:/docs
-      - ./README.md:/repo/README.md:ro
       - ./.env.example:/repo/.env.example:ro
       - ./web/lib/api/openapi.json:/repo/web/lib/api/openapi.json:ro
     depends_on:
