@@ -1,0 +1,979 @@
+{
+  "id": "https://openalex.org/W2949676527",
+  "doi": "https://doi.org/10.1145/3292500.3330701",
+  "title": "Optuna",
+  "display_name": "Optuna",
+  "publication_year": 2019,
+  "publication_date": "2019-07-25",
+  "ids": {
+    "openalex": "https://openalex.org/W2949676527",
+    "doi": "https://doi.org/10.1145/3292500.3330701",
+    "mag": "2949676527"
+  },
+  "language": "en",
+  "primary_location": {
+    "id": "doi:10.1145/3292500.3330701",
+    "is_oa": false,
+    "landing_page_url": "https://doi.org/10.1145/3292500.3330701",
+    "pdf_url": null,
+    "source": null,
+    "license": null,
+    "license_id": null,
+    "version": "publishedVersion",
+    "is_accepted": true,
+    "is_published": true,
+    "raw_source_name": "Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery &amp; Data Mining",
+    "raw_type": "proceedings-article"
+  },
+  "type": "conference-paper",
+  "indexed_in": [
+    "crossref"
+  ],
+  "open_access": {
+    "is_oa": false,
+    "oa_status": "closed",
+    "oa_url": null,
+    "any_repository_has_fulltext": false
+  },
+  "authorships": [
+    {
+      "author_position": "first",
+      "author": {
+        "id": "https://openalex.org/A5102966470",
+        "display_name": "Takuya Akiba",
+        "orcid": "https://orcid.org/0000-0002-8284-4375"
+      },
+      "institutions": [
+        {
+          "id": "https://openalex.org/I4210166566",
+          "display_name": "Preferred Networks (Japan)",
+          "ror": "https://ror.org/05xeefy56",
+          "country_code": "JP",
+          "type": "company",
+          "lineage": [
+            "https://openalex.org/I4210166566"
+          ]
+        }
+      ],
+      "countries": [
+        "JP"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Takuya Akiba",
+      "raw_affiliation_strings": [
+        "Preferred Networks, Inc., Tokyo, Japan"
+      ],
+      "raw_orcid": null,
+      "affiliations": [
+        {
+          "raw_affiliation_string": "Preferred Networks, Inc., Tokyo, Japan",
+          "institution_ids": [
+            "https://openalex.org/I4210166566"
+          ]
+        }
+      ]
+    },
+    {
+      "author_position": "middle",
+      "author": {
+        "id": "https://openalex.org/A5009011727",
+        "display_name": "Shotaro Sano",
+        "orcid": null
+      },
+      "institutions": [
+        {
+          "id": "https://openalex.org/I4210166566",
+          "display_name": "Preferred Networks (Japan)",
+          "ror": "https://ror.org/05xeefy56",
+          "country_code": "JP",
+          "type": "company",
+          "lineage": [
+            "https://openalex.org/I4210166566"
+          ]
+        }
+      ],
+      "countries": [
+        "JP"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Shotaro Sano",
+      "raw_affiliation_strings": [
+        "Preferred Networks, Inc., Tokyo, Japan"
+      ],
+      "raw_orcid": null,
+      "affiliations": [
+        {
+          "raw_affiliation_string": "Preferred Networks, Inc., Tokyo, Japan",
+          "institution_ids": [
+            "https://openalex.org/I4210166566"
+          ]
+        }
+      ]
+    },
+    {
+      "author_position": "middle",
+      "author": {
+        "id": "https://openalex.org/A5020123456",
+        "display_name": "Toshihiko Yanase",
+        "orcid": "https://orcid.org/0000-0003-2971-9943"
+      },
+      "institutions": [
+        {
+          "id": "https://openalex.org/I4210166566",
+          "display_name": "Preferred Networks (Japan)",
+          "ror": "https://ror.org/05xeefy56",
+          "country_code": "JP",
+          "type": "company",
+          "lineage": [
+            "https://openalex.org/I4210166566"
+          ]
+        }
+      ],
+      "countries": [
+        "JP"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Toshihiko Yanase",
+      "raw_affiliation_strings": [
+        "Preferred Networks, Inc., Tokyo, Japan"
+      ],
+      "raw_orcid": null,
+      "affiliations": [
+        {
+          "raw_affiliation_string": "Preferred Networks, Inc., Tokyo, Japan",
+          "institution_ids": [
+            "https://openalex.org/I4210166566"
+          ]
+        }
+      ]
+    },
+    {
+      "author_position": "middle",
+      "author": {
+        "id": "https://openalex.org/A5029031830",
+        "display_name": "Takeru Ohta",
+        "orcid": null
+      },
+      "institutions": [
+        {
+          "id": "https://openalex.org/I4210166566",
+          "display_name": "Preferred Networks (Japan)",
+          "ror": "https://ror.org/05xeefy56",
+          "country_code": "JP",
+          "type": "company",
+          "lineage": [
+            "https://openalex.org/I4210166566"
+          ]
+        }
+      ],
+      "countries": [
+        "JP"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Takeru Ohta",
+      "raw_affiliation_strings": [
+        "Preferred Networks, Inc., Tokyo, Japan"
+      ],
+      "raw_orcid": null,
+      "affiliations": [
+        {
+          "raw_affiliation_string": "Preferred Networks, Inc., Tokyo, Japan",
+          "institution_ids": [
+            "https://openalex.org/I4210166566"
+          ]
+        }
+      ]
+    },
+    {
+      "author_position": "last",
+      "author": {
+        "id": "https://openalex.org/A5103751566",
+        "display_name": "Masanori Koyama",
+        "orcid": null
+      },
+      "institutions": [
+        {
+          "id": "https://openalex.org/I4210166566",
+          "display_name": "Preferred Networks (Japan)",
+          "ror": "https://ror.org/05xeefy56",
+          "country_code": "JP",
+          "type": "company",
+          "lineage": [
+            "https://openalex.org/I4210166566"
+          ]
+        }
+      ],
+      "countries": [
+        "JP"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Masanori Koyama",
+      "raw_affiliation_strings": [
+        "Preferred Networks, Inc., Tokyo, Japan"
+      ],
+      "raw_orcid": null,
+      "affiliations": [
+        {
+          "raw_affiliation_string": "Preferred Networks, Inc., Tokyo, Japan",
+          "institution_ids": [
+            "https://openalex.org/I4210166566"
+          ]
+        }
+      ]
+    }
+  ],
+  "institutions": [],
+  "countries_distinct_count": 1,
+  "institutions_distinct_count": 1,
+  "corresponding_author_ids": [],
+  "corresponding_institution_ids": [
+    "https://openalex.org/I4210166566"
+  ],
+  "apc_list": null,
+  "apc_paid": null,
+  "fwci": 115.447,
+  "has_fulltext": false,
+  "cited_by_count": 7952,
+  "citation_normalized_percentile": {
+    "value": 0.99984313,
+    "is_in_top_1_percent": true,
+    "is_in_top_10_percent": true
+  },
+  "cited_by_percentile_year": {
+    "min": 90,
+    "max": 100
+  },
+  "biblio": {
+    "volume": null,
+    "issue": null,
+    "first_page": "2623",
+    "last_page": "2631"
+  },
+  "is_retracted": false,
+  "is_paratext": false,
+  "is_xpac": false,
+  "primary_topic": {
+    "id": "https://openalex.org/T12535",
+    "display_name": "Machine Learning and Data Classification",
+    "score": 0.9998000264167786,
+    "subfield": {
+      "id": "https://openalex.org/subfields/1702",
+      "display_name": "Artificial Intelligence"
+    },
+    "field": {
+      "id": "https://openalex.org/fields/17",
+      "display_name": "Computer Science"
+    },
+    "domain": {
+      "id": "https://openalex.org/domains/3",
+      "display_name": "Physical Sciences"
+    }
+  },
+  "topics": [
+    {
+      "id": "https://openalex.org/T12535",
+      "display_name": "Machine Learning and Data Classification",
+      "score": 0.9998000264167786,
+      "subfield": {
+        "id": "https://openalex.org/subfields/1702",
+        "display_name": "Artificial Intelligence"
+      },
+      "field": {
+        "id": "https://openalex.org/fields/17",
+        "display_name": "Computer Science"
+      },
+      "domain": {
+        "id": "https://openalex.org/domains/3",
+        "display_name": "Physical Sciences"
+      }
+    },
+    {
+      "id": "https://openalex.org/T10848",
+      "display_name": "Advanced Multi-Objective Optimization Algorithms",
+      "score": 0.9966999888420105,
+      "subfield": {
+        "id": "https://openalex.org/subfields/1703",
+        "display_name": "Computational Theory and Mathematics"
+      },
+      "field": {
+        "id": "https://openalex.org/fields/17",
+        "display_name": "Computer Science"
+      },
+      "domain": {
+        "id": "https://openalex.org/domains/3",
+        "display_name": "Physical Sciences"
+      }
+    },
+    {
+      "id": "https://openalex.org/T10100",
+      "display_name": "Metaheuristic Optimization Algorithms Research",
+      "score": 0.9884999990463257,
+      "subfield": {
+        "id": "https://openalex.org/subfields/1702",
+        "display_name": "Artificial Intelligence"
+      },
+      "field": {
+        "id": "https://openalex.org/fields/17",
+        "display_name": "Computer Science"
+      },
+      "domain": {
+        "id": "https://openalex.org/domains/3",
+        "display_name": "Physical Sciences"
+      }
+    }
+  ],
+  "keywords": [
+    {
+      "id": "https://openalex.org/keywords/computer-science",
+      "display_name": "Computer science",
+      "score": 0.8511215448379517
+    },
+    {
+      "id": "https://openalex.org/keywords/resource-oriented-architecture",
+      "display_name": "Resource-oriented architecture",
+      "score": 0.5668476223945618
+    },
+    {
+      "id": "https://openalex.org/keywords/software",
+      "display_name": "Software",
+      "score": 0.5345973372459412
+    },
+    {
+      "id": "https://openalex.org/keywords/software-development",
+      "display_name": "Software development",
+      "score": 0.5292201638221741
+    },
+    {
+      "id": "https://openalex.org/keywords/pruning",
+      "display_name": "Pruning",
+      "score": 0.4682924151420593
+    },
+    {
+      "id": "https://openalex.org/keywords/scalability",
+      "display_name": "Scalability",
+      "score": 0.46778830885887146
+    },
+    {
+      "id": "https://openalex.org/keywords/software-construction",
+      "display_name": "Software construction",
+      "score": 0.46465176343917847
+    },
+    {
+      "id": "https://openalex.org/keywords/search-based-software-engineering",
+      "display_name": "Search-based software engineering",
+      "score": 0.44504639506340027
+    },
+    {
+      "id": "https://openalex.org/keywords/software-engineering",
+      "display_name": "Software engineering",
+      "score": 0.4250614047050476
+    },
+    {
+      "id": "https://openalex.org/keywords/distributed-computing",
+      "display_name": "Distributed computing",
+      "score": 0.3744356632232666
+    },
+    {
+      "id": "https://openalex.org/keywords/programming-language",
+      "display_name": "Programming language",
+      "score": 0.2228492796421051
+    },
+    {
+      "id": "https://openalex.org/keywords/operating-system",
+      "display_name": "Operating system",
+      "score": 0.20646217465400696
+    }
+  ],
+  "concepts": [
+    {
+      "id": "https://openalex.org/C41008148",
+      "wikidata": "https://www.wikidata.org/wiki/Q21198",
+      "display_name": "Computer science",
+      "level": 0,
+      "score": 0.8511215448379517
+    },
+    {
+      "id": "https://openalex.org/C97382630",
+      "wikidata": "https://www.wikidata.org/wiki/Q13501132",
+      "display_name": "Resource-oriented architecture",
+      "level": 5,
+      "score": 0.5668476223945618
+    },
+    {
+      "id": "https://openalex.org/C2777904410",
+      "wikidata": "https://www.wikidata.org/wiki/Q7397",
+      "display_name": "Software",
+      "level": 2,
+      "score": 0.5345973372459412
+    },
+    {
+      "id": "https://openalex.org/C529173508",
+      "wikidata": "https://www.wikidata.org/wiki/Q638608",
+      "display_name": "Software development",
+      "level": 3,
+      "score": 0.5292201638221741
+    },
+    {
+      "id": "https://openalex.org/C108010975",
+      "wikidata": "https://www.wikidata.org/wiki/Q500094",
+      "display_name": "Pruning",
+      "level": 2,
+      "score": 0.4682924151420593
+    },
+    {
+      "id": "https://openalex.org/C48044578",
+      "wikidata": "https://www.wikidata.org/wiki/Q727490",
+      "display_name": "Scalability",
+      "level": 2,
+      "score": 0.46778830885887146
+    },
+    {
+      "id": "https://openalex.org/C186846655",
+      "wikidata": "https://www.wikidata.org/wiki/Q3398377",
+      "display_name": "Software construction",
+      "level": 4,
+      "score": 0.46465176343917847
+    },
+    {
+      "id": "https://openalex.org/C139143892",
+      "wikidata": "https://www.wikidata.org/wiki/Q7441615",
+      "display_name": "Search-based software engineering",
+      "level": 5,
+      "score": 0.44504639506340027
+    },
+    {
+      "id": "https://openalex.org/C115903868",
+      "wikidata": "https://www.wikidata.org/wiki/Q80993",
+      "display_name": "Software engineering",
+      "level": 1,
+      "score": 0.4250614047050476
+    },
+    {
+      "id": "https://openalex.org/C120314980",
+      "wikidata": "https://www.wikidata.org/wiki/Q180634",
+      "display_name": "Distributed computing",
+      "level": 1,
+      "score": 0.3744356632232666
+    },
+    {
+      "id": "https://openalex.org/C199360897",
+      "wikidata": "https://www.wikidata.org/wiki/Q9143",
+      "display_name": "Programming language",
+      "level": 1,
+      "score": 0.2228492796421051
+    },
+    {
+      "id": "https://openalex.org/C111919701",
+      "wikidata": "https://www.wikidata.org/wiki/Q9135",
+      "display_name": "Operating system",
+      "level": 1,
+      "score": 0.20646217465400696
+    },
+    {
+      "id": "https://openalex.org/C86803240",
+      "wikidata": "https://www.wikidata.org/wiki/Q420",
+      "display_name": "Biology",
+      "level": 0,
+      "score": 0.0
+    },
+    {
+      "id": "https://openalex.org/C6557445",
+      "wikidata": "https://www.wikidata.org/wiki/Q173113",
+      "display_name": "Agronomy",
+      "level": 1,
+      "score": 0.0
+    }
+  ],
+  "mesh": [],
+  "locations_count": 1,
+  "locations": [
+    {
+      "id": "doi:10.1145/3292500.3330701",
+      "is_oa": false,
+      "landing_page_url": "https://doi.org/10.1145/3292500.3330701",
+      "pdf_url": null,
+      "source": null,
+      "license": null,
+      "license_id": null,
+      "version": "publishedVersion",
+      "is_accepted": true,
+      "is_published": true,
+      "raw_source_name": "Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery &amp; Data Mining",
+      "raw_type": "proceedings-article"
+    }
+  ],
+  "best_oa_location": null,
+  "sustainable_development_goals": [
+    {
+      "score": 0.5299999713897705,
+      "display_name": "Industry, innovation and infrastructure",
+      "id": "https://metadata.un.org/sdg/9"
+    }
+  ],
+  "awards": [],
+  "funders": [],
+  "has_content": {
+    "grobid_xml": false,
+    "pdf": false
+  },
+  "content_urls": null,
+  "referenced_works_count": 28,
+  "referenced_works": [
+    "https://openalex.org/W60686164",
+    "https://openalex.org/W1437335841",
+    "https://openalex.org/W2106411961",
+    "https://openalex.org/W2112036188",
+    "https://openalex.org/W2181616869",
+    "https://openalex.org/W2192203593",
+    "https://openalex.org/W2266822037",
+    "https://openalex.org/W2472803348",
+    "https://openalex.org/W2556522401",
+    "https://openalex.org/W2577255746",
+    "https://openalex.org/W2584004798",
+    "https://openalex.org/W2586993394",
+    "https://openalex.org/W2618530766",
+    "https://openalex.org/W2732547613",
+    "https://openalex.org/W2736977076",
+    "https://openalex.org/W2751836095",
+    "https://openalex.org/W2798650501",
+    "https://openalex.org/W2883265831",
+    "https://openalex.org/W2890196105",
+    "https://openalex.org/W2899505139",
+    "https://openalex.org/W2899771611",
+    "https://openalex.org/W2908974255",
+    "https://openalex.org/W2950182411",
+    "https://openalex.org/W2963334428",
+    "https://openalex.org/W2963815651",
+    "https://openalex.org/W2963888630",
+    "https://openalex.org/W3100008240",
+    "https://openalex.org/W4213308398"
+  ],
+  "related_works": [
+    "https://openalex.org/W3173949332",
+    "https://openalex.org/W4214835859",
+    "https://openalex.org/W2380017313",
+    "https://openalex.org/W2520111506",
+    "https://openalex.org/W39186842",
+    "https://openalex.org/W2032832792",
+    "https://openalex.org/W185543890",
+    "https://openalex.org/W2523959329",
+    "https://openalex.org/W2362399986",
+    "https://openalex.org/W3214105681"
+  ],
+  "abstract_inverted_index": {
+    "The": [
+      0,
+      15
+    ],
+    "purpose": [
+      1
+    ],
+    "of": [
+      2,
+      36,
+      83,
+      89,
+      108,
+      122,
+      134
+    ],
+    "this": [
+      3
+    ],
+    "study": [
+      4
+    ],
+    "is": [
+      5,
+      80,
+      104,
+      147
+    ],
+    "to": [
+      6,
+      26,
+      59,
+      68
+    ],
+    "introduce": [
+      7,
+      74
+    ],
+    "new": [
+      8,
+      136
+    ],
+    "design-criteria": [
+      9
+    ],
+    "for": [
+      10,
+      51
+    ],
+    "next-generation": [
+      11
+    ],
+    "hyperparameter": [
+      12
+    ],
+    "optimization": [
+      13,
+      77,
+      93,
+      97
+    ],
+    "software.": [
+      14,
+      94
+    ],
+    "criteria": [
+      16
+    ],
+    "we": [
+      17,
+      72
+    ],
+    "propose": [
+      18
+    ],
+    "include": [
+      19
+    ],
+    "(1)": [
+      20
+    ],
+    "define-by-run": [
+      21,
+      101
+    ],
+    "API": [
+      22
+    ],
+    "that": [
+      23,
+      47,
+      116,
+      125
+    ],
+    "allows": [
+      24
+    ],
+    "users": [
+      25
+    ],
+    "construct": [
+      27
+    ],
+    "the": [
+      28,
+      87,
+      106,
+      114,
+      120,
+      123,
+      127,
+      132,
+      150
+    ],
+    "parameter": [
+      29
+    ],
+    "search": [
+      30
+    ],
+    "space": [
+      31
+    ],
+    "dynamically,": [
+      32
+    ],
+    "(2)": [
+      33
+    ],
+    "efficient": [
+      34
+    ],
+    "implementation": [
+      35
+    ],
+    "both": [
+      37
+    ],
+    "searching": [
+      38
+    ],
+    "and": [
+      39,
+      42,
+      130,
+      141
+    ],
+    "pruning": [
+      40
+    ],
+    "strategies,": [
+      41
+    ],
+    "(3)": [
+      43
+    ],
+    "easy-to-setup,": [
+      44
+    ],
+    "versatile": [
+      45
+    ],
+    "architecture": [
+      46
+    ],
+    "can": [
+      48
+    ],
+    "be": [
+      49
+    ],
+    "deployed": [
+      50
+    ],
+    "various": [
+      52
+    ],
+    "purposes,": [
+      53
+    ],
+    "ranging": [
+      54
+    ],
+    "from": [
+      55
+    ],
+    "scalable": [
+      56
+    ],
+    "distributed": [
+      57
+    ],
+    "computing": [
+      58
+    ],
+    "light-weight": [
+      60
+    ],
+    "experiment": [
+      61
+    ],
+    "conducted": [
+      62
+    ],
+    "via": [
+      63
+    ],
+    "interactive": [
+      64
+    ],
+    "interface.": [
+      65
+    ],
+    "In": [
+      66
+    ],
+    "order": [
+      67
+    ],
+    "prove": [
+      69
+    ],
+    "our": [
+      70,
+      84,
+      135
+    ],
+    "point,": [
+      71
+    ],
+    "will": [
+      73,
+      112
+    ],
+    "Optuna,": [
+      75
+    ],
+    "an": [
+      76,
+      96
+    ],
+    "software": [
+      78,
+      98,
+      124,
+      146
+    ],
+    "which": [
+      79
+    ],
+    "a": [
+      81,
+      90
+    ],
+    "culmination": [
+      82
+    ],
+    "effort": [
+      85
+    ],
+    "in": [
+      86,
+      119
+    ],
+    "development": [
+      88,
+      121
+    ],
+    "next": [
+      91
+    ],
+    "generation": [
+      92
+    ],
+    "As": [
+      95
+    ],
+    "designed": [
+      99
+    ],
+    "with": [
+      100
+    ],
+    "principle,": [
+      102
+    ],
+    "Optuna": [
+      103
+    ],
+    "particularly": [
+      105
+    ],
+    "first": [
+      107
+    ],
+    "its": [
+      109
+    ],
+    "kind.": [
+      110
+    ],
+    "We": [
+      111
+    ],
+    "present": [
+      113
+    ],
+    "design-techniques": [
+      115
+    ],
+    "became": [
+      117
+    ],
+    "necessary": [
+      118
+    ],
+    "meets": [
+      126
+    ],
+    "above": [
+      128
+    ],
+    "criteria,": [
+      129
+    ],
+    "demonstrate": [
+      131
+    ],
+    "power": [
+      133
+    ],
+    "design": [
+      137
+    ],
+    "through": [
+      138
+    ],
+    "experimental": [
+      139
+    ],
+    "results": [
+      140
+    ],
+    "real": [
+      142
+    ],
+    "world": [
+      143
+    ],
+    "applications.": [
+      144
+    ],
+    "Our": [
+      145
+    ],
+    "available": [
+      148
+    ],
+    "under": [
+      149
+    ],
+    "MIT": [
+      151
+    ],
+    "license": [
+      152
+    ],
+    "(https://github.com/pfnet/optuna/).": [
+      153
+    ]
+  },
+  "counts_by_year": [
+    {
+      "year": 2026,
+      "cited_by_count": 1770
+    },
+    {
+      "year": 2025,
+      "cited_by_count": 2558
+    },
+    {
+      "year": 2024,
+      "cited_by_count": 1581
+    },
+    {
+      "year": 2023,
+      "cited_by_count": 987
+    },
+    {
+      "year": 2022,
+      "cited_by_count": 546
+    },
+    {
+      "year": 2021,
+      "cited_by_count": 352
+    },
+    {
+      "year": 2020,
+      "cited_by_count": 142
+    },
+    {
+      "year": 2019,
+      "cited_by_count": 14
+    },
+    {
+      "year": 2018,
+      "cited_by_count": 1
+    },
+    {
+      "year": 2016,
+      "cited_by_count": 1
+    }
+  ],
+  "updated_date": "2026-08-14T07:06:38.338062",
+  "created_date": "2019-06-27T00:00:00"
+}

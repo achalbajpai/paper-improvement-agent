@@ -1,0 +1,140 @@
+{
+  "findings": [
+    {
+      "probe": "openalex_search",
+      "status": 200,
+      "retry_after": null,
+      "content_type": "application/json",
+      "body_keys": [
+        "group_by",
+        "meta",
+        "results"
+      ],
+      "_all_body_keys": [
+        "group_by",
+        "meta",
+        "results"
+      ]
+    },
+    {
+      "probe": "openalex_by_doi",
+      "status": 200,
+      "retry_after": null,
+      "content_type": "application/json",
+      "body_keys": [
+        "abstract_inverted_index",
+        "apc_list",
+        "apc_paid",
+        "authorships",
+        "awards",
+        "best_oa_location",
+        "biblio",
+        "citation_normalized_percentile",
+        "cited_by_count",
+        "cited_by_percentile_year",
+        "concepts",
+        "content_urls"
+      ],
+      "_all_body_keys": [
+        "abstract_inverted_index",
+        "apc_list",
+        "apc_paid",
+        "authorships",
+        "awards",
+        "best_oa_location",
+        "biblio",
+        "citation_normalized_percentile",
+        "cited_by_count",
+        "cited_by_percentile_year",
+        "concepts",
+        "content_urls",
+        "corresponding_author_ids",
+        "corresponding_institution_ids",
+        "countries_distinct_count",
+        "counts_by_year",
+        "created_date",
+        "display_name",
+        "doi",
+        "funders",
+        "fwci",
+        "has_content",
+        "has_fulltext",
+        "id",
+        "ids",
+        "indexed_in",
+        "institutions",
+        "institutions_distinct_count",
+        "is_paratext",
+        "is_retracted",
+        "is_xpac",
+        "keywords",
+        "language",
+        "locations",
+        "locations_count",
+        "mesh",
+        "open_access",
+        "primary_location",
+        "primary_topic",
+        "publication_date",
+        "publication_year",
+        "referenced_works",
+        "referenced_works_count",
+        "related_works",
+        "sustainable_development_goals",
+        "title",
+        "topics",
+        "type",
+        "updated_date"
+      ]
+    },
+    {
+      "probe": "openalex_not_found",
+      "status": 404,
+      "retry_after": null,
+      "content_type": "text/html; charset=utf-8",
+      "body_keys": [
+        "raw"
+      ],
+      "_all_body_keys": [
+        "raw"
+      ]
+    },
+    {
+      "probe": "s2_search",
+      "configuration_error": "SEMANTIC_SCHOLAR_API_KEY is required for the live contract."
+    }
+  ],
+  "openalex_abstract_shape": {
+    "available": true,
+    "has_abstract_inverted_index": true,
+    "has_plain_abstract_field": false,
+    "meta_cost": 0.001,
+    "top_level_fields": [
+      "abstract_inverted_index",
+      "apc_list",
+      "apc_paid",
+      "authorships",
+      "awards",
+      "best_oa_location",
+      "biblio",
+      "citation_normalized_percentile",
+      "cited_by_count",
+      "cited_by_percentile_year",
+      "concepts",
+      "content_urls",
+      "corresponding_author_ids",
+      "corresponding_institution_ids",
+      "countries_distinct_count",
+      "counts_by_year",
+      "created_date",
+      "display_name",
+      "doi",
+      "funders"
+    ]
+  },
+  "contracts_failed": [
+    "s2_search: SEMANTIC_SCHOLAR_API_KEY is required for the live contract.",
+    "s2_by_doi: not probed",
+    "s2_not_found: not probed"
+  ]
+}

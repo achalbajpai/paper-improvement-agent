@@ -1,0 +1,42 @@
+{
+  "captured_at": "2026-08-15T00:34:01.194634+00:00",
+  "grobid_image": "grobid/grobid:0.9.0-crf",
+  "grobid_service_version": true,
+  "endpoint": "/api/processFulltextDocument",
+  "request_parameters": {
+    "consolidateHeader": "0",
+    "consolidateCitations": "0",
+    "includeRawCitations": "1",
+    "includeRawAffiliations": "0",
+    "segmentSentences": "0"
+  },
+  "papers": [
+    {
+      "key": "A_numeric",
+      "arxiv_id": "1706.03762",
+      "expected_family": "NUMERIC",
+      "source_pdf_sha256": "bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697",
+      "tei_file": "A_numeric.tei.xml",
+      "tei_sha256": "80f0a73c084b83d7020607ec71f2fb334df5ad8351af596914485ee55a65e21f",
+      "tei_bytes": 87941
+    },
+    {
+      "key": "B_author_year",
+      "arxiv_id": "1810.04805",
+      "expected_family": "AUTHOR_YEAR",
+      "source_pdf_sha256": "5692a5514787a8c6727b4ff3b726a3385798bc68e12138d1d4af83947e2acf6e",
+      "tei_file": "B_author_year.tei.xml",
+      "tei_sha256": "6e712d17d8f1e619492a81407a3763a27fe82fde328ca9503a5cab4e3406ebd3",
+      "tei_bytes": 130332
+    },
+    {
+      "key": "C_numeric_dense",
+      "arxiv_id": "1512.03385",
+      "expected_family": "NUMERIC",
+      "source_pdf_sha256": "1e0651b6810ecba34a3dbc5b5b0209226f889004607c1f203540a48d64e5a93a",
+      "tei_file": "C_numeric_dense.tei.xml",
+      "tei_sha256": "dcb321cf59451631d00572cee586fab6fd33ffa0a404971f4284be438fe780bf",
+      "tei_bytes": 117226
+    }
+  ]
+}
