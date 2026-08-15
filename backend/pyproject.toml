@@ -1,0 +1,90 @@
+[project]
+name = "answerthis-api"
+version = "0.1.0"
+description = "Paper Improvement Agent: parsing, grounded review, safe agentic editing, fidelity export"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "pydantic>=2.9",
+  "pydantic-settings>=2.6",
+  "sqlalchemy>=2.0.36",
+  "psycopg[binary]>=3.2",
+  "httpx>=0.28",
+  "python-multipart>=0.0.17",
+  "lxml>=5.3",
+  "openai>=1.57",
+  "pypdf>=5.1",
+  "PyMuPDF>=1.24",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "mypy>=1.13",
+  "ruff>=0.8",
+  "respx>=0.22",
+  "lxml-stubs>=0.5",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "S", "A", "C4", "PIE", "RET", "SIM", "TID", "PL"]
+ignore = [
+  "PLR0913",
+  "PLR2004",
+  "S101",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "PLR0915"]
+"app/scripts/**" = ["S603", "S607", "PLR0915"]
+"app/domain/errors.py" = ["S105"]
+"app/domain/verification.py" = ["S105"]
+"app/services/exporter/renderer.py" = ["S603"]
+"app/services/parser/postvalidator.py" = ["PLR0911"]
+"app/services/parser/segmenter.py" = ["PLR0911", "S105"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+
+
+
+
+
+[tool.mypy]
+python_version = "3.12"
+files = ["app"]
+plugins = ["pydantic.mypy"]
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_reexport = true
+disable_error_code = ["prop-decorator"]
+disallow_untyped_defs = true
+check_untyped_defs = true
+
+
+[[tool.mypy.overrides]]
+module = ["app.domain.*", "app.services.*"]
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "slow: needs real GROBID, pandoc/LaTeX, or the full end-to-end stack",
+  "live: needs real network providers or a real LLM; never part of `make test`",
+]
+filterwarnings = ["error::DeprecationWarning:app.*"]

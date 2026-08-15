@@ -1,0 +1,6 @@
+.next/
+.pnpm-store/
+pnpm-lock.yaml
+pnpm-workspace.yaml
+lib/api/openapi.json
+lib/api/schema.d.ts
