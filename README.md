@@ -77,7 +77,6 @@ make up
 
 ```bash
 make test        # backend and frontend
-make test-slow   # real GROBID plus the acceptance end-to-end test
 make lint
 make typecheck
 make live-smoke  # live model and providers; needs keys
@@ -86,7 +85,7 @@ make live-smoke  # live model and providers; needs keys
 
 ## System design
 
-<img width="1078" height="874" alt="image" src="https://github.com/user-attachments/assets/fc4a0660-2f44-42d5-95be-181aa08b345d" />
+<img width="783" height="599" alt="image" src="https://github.com/user-attachments/assets/8883fd7c-f1ad-4c28-8d57-fed7ca98ebd3" />
 
 
 - [`docs/citation-parsing.md`](docs/citation-parsing.md) - pipeline stages, the
