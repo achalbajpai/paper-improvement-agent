@@ -1,0 +1,87 @@
+{
+  "paper": "B_author_year",
+  "title": "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding",
+  "family": "AUTHOR_YEAR",
+  "labelled_from": "The published PDF, read directly. Pages 1-2 for markers, pages 10-13 for the bibliography, whole document for the block inventory.",
+  "scope_note": "Author-year works are labelled by (surname, year) as printed in the marker, not by bibliography position, because this paper's reference list is unnumbered. Linkage accuracy against a numbered ground truth is therefore not measurable here; what is measured is marker detection, cluster size, and linkage coverage, with the postvalidator's independent corroboration rate reported alongside. The abstract is excluded because it is stored as a separate field.",
+  "exhaustive_sections": ["Introduction", "Unsupervised Feature-based Approaches"],
+  "markers": [
+    { "section": "Introduction", "marker": "(Dai and Le, 2015; Peters et al., 2018a; Radford et al., 2018; Howard and Ruder, 2018)", "works": [["Dai", 2015], ["Peters", 2018], ["Radford", 2018], ["Howard", 2018]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "(Bowman et al., 2015; Williams et al., 2018)", "works": [["Bowman", 2015], ["Williams", 2018]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "(Dolan and Brockett, 2005)", "works": [["Dolan", 2005]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "(Tjong Kim Sang and De Meulder, 2003; Rajpurkar et al., 2016)", "works": [["Tjong Kim Sang", 2003], ["Rajpurkar", 2016]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "(Peters et al., 2018a)", "works": [["Peters", 2018]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "(Radford et al., 2018)", "works": [["Radford", 2018]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "(Vaswani et al., 2017)", "works": [["Vaswani", 2017]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "(Taylor, 1953)", "works": [["Taylor", 1953]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "Radford et al. (2018)", "works": [["Radford", 2018]], "mode": "AUTHOR_IN_TEXT", "modifiers": [] },
+    { "section": "Introduction", "marker": "Peters et al. (2018a)", "works": [["Peters", 2018]], "mode": "AUTHOR_IN_TEXT", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "(Brown et al., 1992; Ando and Zhang, 2005; Blitzer et al., 2006)", "works": [["Brown", 1992], ["Ando", 2005], ["Blitzer", 2006]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "(Mikolov et al., 2013; Pennington et al., 2014)", "works": [["Mikolov", 2013], ["Pennington", 2014]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "(Turian et al., 2010)", "works": [["Turian", 2010]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "(Mnih and Hinton, 2009)", "works": [["Mnih", 2009]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "(Mikolov et al., 2013)", "works": [["Mikolov", 2013]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "(Kiros et al., 2015; Logeswaran and Lee, 2018)", "works": [["Kiros", 2015], ["Logeswaran", 2018]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "(Le and Mikolov, 2014)", "works": [["Le", 2014]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "(Jernite et al., 2017; Logeswaran and Lee, 2018)", "works": [["Jernite", 2017], ["Logeswaran", 2018]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "(Kiros et al., 2015)", "works": [["Kiros", 2015]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "(Hill et al., 2016)", "works": [["Hill", 2016]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "(Peters et al., 2017, 2018a)", "works": [["Peters", 2017], ["Peters", 2018]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "(Peters et al., 2018a)", "works": [["Peters", 2018]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "(Rajpurkar et al., 2016)", "works": [["Rajpurkar", 2016]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "(Socher et al., 2013)", "works": [["Socher", 2013]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "(Tjong Kim Sang and De Meulder, 2003)", "works": [["Tjong Kim Sang", 2003]], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "Melamud et al. (2016)", "works": [["Melamud", 2016]], "mode": "AUTHOR_IN_TEXT", "modifiers": [] },
+    { "section": "Unsupervised Feature-based Approaches", "marker": "Fedus et al. (2018)", "works": [["Fedus", 2018]], "mode": "AUTHOR_IN_TEXT", "modifiers": [] }
+  ],
+  "bibliography": {
+    "entries": null,
+    "counted_from": "Not independently counted: this reference list is unnumbered, so a reliable total cannot be read off the printed page without transcribing every entry. The spot checks below were verified present by reading the list; the retention metric for this paper is reported against the TEI's listBibl count instead, and that limitation is stated in the results.",
+    "spot_checks": [
+      {
+        "first_author_family": "Akbik",
+        "first_author_given": "Alan",
+        "year": 2018,
+        "title": "Contextual string embeddings for sequence labeling"
+      },
+      {
+        "first_author_family": "Al-Rfou",
+        "first_author_given": "Rami",
+        "year": 2018,
+        "title": "Character-level language modeling with deeper self-attention"
+      },
+      {
+        "first_author_family": "Ando",
+        "first_author_given": "Rie Kubota",
+        "year": 2005,
+        "title": "A framework for learning predictive structures from multiple tasks and unlabeled data",
+        "note": "Printed as 'Rie Kubota Ando and Tong Zhang'. The family name is Ando; 'Kubota' is a middle name."
+      },
+      {
+        "first_author_family": "Bowman",
+        "first_author_given": "Samuel R.",
+        "year": 2015,
+        "title": "A large annotated corpus for learning natural language inference"
+      },
+      {
+        "first_author_family": "Brown",
+        "first_author_given": "Peter F",
+        "year": 1992,
+        "title": "Class-based n-gram models of natural language"
+      },
+      {
+        "first_author_family": "Mikolov",
+        "first_author_given": "Tomas",
+        "year": 2013,
+        "title": "Distributed representations of words and phrases and their compositionality",
+        "note": "Printed year is 2013."
+      }
+    ]
+  },
+  "blocks": {
+    "figures": 5,
+    "tables": 8,
+    "counted_from": "Distinct 'Figure N:' and 'Table N:' captions in the printed document.",
+    "note": "This paper's figures are typeset diagrams. GROBID recovers their captions but not their content."
+  }
+}

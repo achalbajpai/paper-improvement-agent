@@ -1,0 +1,89 @@
+{
+  "paper": "A_numeric",
+  "title": "Attention Is All You Need",
+  "family": "NUMERIC",
+  "labelled_from": "The published PDF, read directly. Pages 2-3 for markers, page 10-12 for the bibliography, whole document for the block inventory.",
+  "scope_note": "Markers are labelled exhaustively for the four sections listed in exhaustive_sections. Everything after 'Encoder and Decoder Stacks' is outside the labelled scope, so recall is measured over these sections only and the denominator is stated rather than implied. The abstract is excluded because it is stored as a separate field and is not part of the section flow.",
+  "exhaustive_sections": [
+    "Introduction",
+    "Background",
+    "Model Architecture",
+    "Encoder and Decoder Stacks"
+  ],
+  "markers": [
+    { "section": "Introduction", "marker": "[13]", "works": [13], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[7]", "works": [7], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[35, 2, 5]", "works": [35, 2, 5], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[38, 24, 15]", "works": [38, 24, 15], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[21]", "works": [21], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[32]", "works": [32], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[2, 19]", "works": [2, 19], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[27]", "works": [27], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Background", "marker": "[16]", "works": [16], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Background", "marker": "[18]", "works": [18], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Background", "marker": "[9]", "works": [9], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Background", "marker": "[12]", "works": [12], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Background", "marker": "[4, 27, 28, 22]", "works": [4, 27, 28, 22], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Background", "marker": "[34]", "works": [34], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Background", "marker": "[17, 18]", "works": [17, 18], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Background", "marker": "[9]", "works": [9], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Model Architecture", "marker": "[5, 2, 35]", "works": [5, 2, 35], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Model Architecture", "marker": "[10]", "works": [10], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Encoder and Decoder Stacks", "marker": "[11]", "works": [11], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Encoder and Decoder Stacks", "marker": "[1]", "works": [1], "mode": "NORMAL", "modifiers": [] }
+  ],
+  "bibliography": {
+    "entries": 40,
+    "counted_from": "Numbered entries [1] through [40] in the printed reference list.",
+    "spot_checks": [
+      {
+        "number": 1,
+        "first_author_family": "Ba",
+        "first_author_given": "Jimmy Lei",
+        "year": 2016,
+        "title": "Layer normalization"
+      },
+      {
+        "number": 5,
+        "first_author_family": "Cho",
+        "first_author_given": "Kyunghyun",
+        "year": 2014,
+        "title": "Learning phrase representations using rnn encoder-decoder for statistical machine translation"
+      },
+      {
+        "number": 7,
+        "first_author_family": "Chung",
+        "first_author_given": "Junyoung",
+        "year": 2014,
+        "title": "Empirical evaluation of gated recurrent neural networks on sequence modeling"
+      },
+      {
+        "number": 11,
+        "first_author_family": "He",
+        "first_author_given": "Kaiming",
+        "year": 2016,
+        "title": "Deep residual learning for image recognition"
+      },
+      {
+        "number": 13,
+        "first_author_family": "Hochreiter",
+        "first_author_given": "Sepp",
+        "year": 1997,
+        "title": "Long short-term memory"
+      },
+      {
+        "number": 18,
+        "first_author_family": "Kalchbrenner",
+        "first_author_given": "Nal",
+        "year": 2017,
+        "title": "Neural machine translation in linear time"
+      }
+    ]
+  },
+  "blocks": {
+    "figures": 5,
+    "tables": 4,
+    "counted_from": "Distinct 'Figure N:' and 'Table N:' captions in the printed document.",
+    "note": "Figures 1 and 2 are rendered diagrams with no textual content. GROBID emits <graphic> with page coordinates and no image bytes for them, so they are expected to be UNRENDERABLE rather than recoverable."
+  }
+}

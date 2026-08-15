@@ -1,0 +1,34 @@
+{
+  "papers": [
+    {
+      "key": "A_numeric",
+      "arxiv_id": "1706.03762",
+      "title": "Attention Is All You Need",
+      "expected_family": "NUMERIC",
+      "note": "NeurIPS style, bracketed numeric markers, single column.",
+      "filename": "A_numeric.pdf",
+      "bytes": 2215244,
+      "sha256": "bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697"
+    },
+    {
+      "key": "B_author_year",
+      "arxiv_id": "1810.04805",
+      "title": "BERT: Pre-training of Deep Bidirectional Transformers",
+      "expected_family": "AUTHOR_YEAR",
+      "note": "ACL style, two column, parenthetical and narrative author-year.",
+      "filename": "B_author_year.pdf",
+      "bytes": 775166,
+      "sha256": "5692a5514787a8c6727b4ff3b726a3385798bc68e12138d1d4af83947e2acf6e"
+    },
+    {
+      "key": "C_numeric_dense",
+      "arxiv_id": "1512.03385",
+      "title": "Deep Residual Learning for Image Recognition",
+      "expected_family": "NUMERIC",
+      "note": "CVPR style, dense two column, many figures and tables.",
+      "filename": "C_numeric_dense.pdf",
+      "bytes": 819383,
+      "sha256": "1e0651b6810ecba34a3dbc5b5b0209226f889004607c1f203540a48d64e5a93a"
+    }
+  ]
+}

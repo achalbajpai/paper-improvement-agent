@@ -1,0 +1,100 @@
+{
+  "paper": "C_numeric_dense",
+  "title": "Deep Residual Learning for Image Recognition",
+  "family": "NUMERIC",
+  "labelled_from": "The published PDF, read directly. Pages 1-2 for markers, page 9-10 for the bibliography, whole document for the block inventory.",
+  "scope_note": "The Introduction is labelled from the printed section, which runs across pages 1 and 2. GROBID splits it differently, so recall is measured over the whole document rather than section by section; the section field is provenance for a human reader, not a matching key. Precision is measured only over exhaustive_sections, where the printed section and the parsed section coincide. The abstract is excluded because it is stored as a separate field.",
+  "exhaustive_sections": ["Related Work", "Shortcut Connections."],
+  "markers": [
+    { "section": "Introduction", "marker": "[22, 21]", "works": [22, 21], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[21, 50, 40]", "works": [21, 50, 40], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[50]", "works": [50], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[41, 44]", "works": [41, 44], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[41, 44, 13, 16]", "works": [41, 44, 13, 16], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[36]", "works": [36], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[41]", "works": [41], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[41]", "works": [41], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[16]", "works": [16], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[8, 12, 7, 32, 27]", "works": [8, 12, 7, 32, 27], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[1, 9]", "works": [1, 9], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[23, 9, 37, 13]", "works": [23, 9, 37, 13], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[16]", "works": [16], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[22]", "works": [22], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[11, 42]", "works": [11, 42], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[2, 34, 49]", "works": [2, 34, 49], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[19]", "works": [19], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[36]", "works": [36], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[20]", "works": [20], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[36]", "works": [36], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Introduction", "marker": "[41]", "works": [41], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Related Work", "marker": "[18]", "works": [18], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Related Work", "marker": "[30]", "works": [30], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Related Work", "marker": "[18]", "works": [18], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Related Work", "marker": "[4, 48]", "works": [4, 48], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Related Work", "marker": "[17]", "works": [17], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Related Work", "marker": "[3]", "works": [3], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Related Work", "marker": "[45, 46]", "works": [45, 46], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Related Work", "marker": "[3, 45, 46]", "works": [3, 45, 46], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Shortcut Connections.", "marker": "[2, 34, 49]", "works": [2, 34, 49], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Shortcut Connections.", "marker": "[34, 49]", "works": [34, 49], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Shortcut Connections.", "marker": "[44, 24]", "works": [44, 24], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Shortcut Connections.", "marker": "[39, 38, 31, 47]", "works": [39, 38, 31, 47], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Shortcut Connections.", "marker": "[44]", "works": [44], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Shortcut Connections.", "marker": "[42, 43]", "works": [42, 43], "mode": "NORMAL", "modifiers": [] },
+    { "section": "Shortcut Connections.", "marker": "[15]", "works": [15], "mode": "NORMAL", "modifiers": [] }
+  ],
+  "bibliography": {
+    "entries": 50,
+    "counted_from": "Numbered entries [1] through [50] in the printed reference list.",
+    "spot_checks": [
+      {
+        "number": 1,
+        "first_author_family": "Bengio",
+        "first_author_given": "Y.",
+        "year": 1994,
+        "title": "Learning long-term dependencies with gradient descent is difficult"
+      },
+      {
+        "number": 2,
+        "first_author_family": "Bishop",
+        "first_author_given": "C. M.",
+        "year": 1995,
+        "title": "Neural networks for pattern recognition"
+      },
+      {
+        "number": 3,
+        "first_author_family": "Briggs",
+        "first_author_given": "W. L.",
+        "year": 2000,
+        "title": "A Multigrid Tutorial"
+      },
+      {
+        "number": 15,
+        "first_author_family": "Hochreiter",
+        "first_author_given": "S.",
+        "year": 1997,
+        "title": "Long short-term memory"
+      },
+      {
+        "number": 21,
+        "first_author_family": "Krizhevsky",
+        "first_author_given": "A.",
+        "year": 2012,
+        "title": "Imagenet classification with deep convolutional neural networks"
+      },
+      {
+        "number": 22,
+        "first_author_family": "LeCun",
+        "first_author_given": "Y.",
+        "year": 1989,
+        "title": "Backpropagation applied to handwritten zip code recognition"
+      }
+    ]
+  },
+  "blocks": {
+    "figures": 7,
+    "tables": 14,
+    "counted_from": "Distinct 'Figure N.' and 'Table N.' captions in the printed document.",
+    "note": "GROBID recovers far fewer table blocks than the paper prints, because several 'Table N' captions label sub-tables inside a single typeset float. The gap is reported rather than reconciled."
+  }
+}
