@@ -1,21 +1,3 @@
-"""OpenAlex adapter.
-
-Three capabilities, all used at runtime: resolve a known reference, search for
-candidate works, and retrieve an abstract.
-
-The abstract needs saying out loud. OpenAlex does not return abstract text; it
-returns ``abstract_inverted_index``, a word to positions map, for licensing
-reasons. Reconstructing it is a lossy operation -- the original whitespace and
-line breaks are gone -- so the reconstruction is what gets snapshotted into
-``source_records`` and every evidence span therefore indexes into the
-reconstruction rather than into a text no part of this system ever held.
-
-OpenAlex requires a free API key for every request as of February 13, 2026.
-``mailto`` remains optional contact metadata. A missing key is still allowed at
-startup so parsing and local editing remain available; provider calls then
-surface the upstream authentication failure as a typed degradation.
-"""
-
 from __future__ import annotations
 
 import re
@@ -54,11 +36,6 @@ class OpenAlexClient:
         timeout: float | None = None,
         on_attempt: Callable[[], None] | None = None,
     ) -> None:
-        """``on_attempt`` is invoked once per outbound HTTP request.
-
-        Supplied by the operation that owns the provider budget, so a call the
-        transport retries is counted twice -- which is what it costs.
-        """
         self.on_attempt = on_attempt
         settings = get_settings()
         self.timeout = timeout if timeout is not None else settings.provider_timeout_seconds
@@ -73,17 +50,6 @@ class OpenAlexClient:
         return _matching(self.to_work(payload), doi=normalised)
 
     def get_by_arxiv(self, arxiv_id: str, *, timeout: float | None = None) -> ProviderWork:
-        """Look the preprint up by its registered arXiv DOI.
-
-        OpenAlex does not carry a queryable arXiv identifier. It does index the
-        DOI arXiv mints for each submission, so that is the lookup, and a work
-        without one is a genuine miss that the resolution ladder must fall
-        through -- to Semantic Scholar, or to the metadata rung, or to
-        unresolved. Answering "not found" here is correct; the previous filter
-        (``ids.openalex:null,locations.landing_page_url:<bare id>``) could not
-        match anything at all, so every arXiv-only reference failed this rung
-        whatever OpenAlex actually held.
-        """
         normalised = normalise_arxiv(arxiv_id)
         if not normalised:
             raise ProviderNotFoundError("Not an arXiv id.", provider=self.provider.value)
@@ -102,11 +68,6 @@ class OpenAlexClient:
     def search_by_title(
         self, title: str, *, limit: int, timeout: float | None = None
     ) -> list[ProviderWork]:
-        """Title-scoped search, for the resolution ladder's metadata rung.
-
-        Full-text search would happily return a paper that merely *cites* the
-        title being looked for, which is a wrong match dressed as a good one.
-        """
         payload = self._get(
             f"{BASE_URL}/works",
             params={
@@ -137,16 +98,6 @@ class OpenAlexClient:
 
     @classmethod
     def to_work(cls, payload: dict[str, Any]) -> ProviderWork:
-        """One provider record, or a typed refusal.
-
-        A payload carrying no identifier is not a work with blank fields; it is
-        a response this adapter did not understand. Accepting it yields a record
-        whose identity key is the bare provider prefix -- which every other
-        malformed response shares, so the snapshot store folds them into one row
-        -- and the resolver, having asked by DOI, marks the result CERTAIN. That
-        is a fabricated identity presented as a confident match, which is the
-        same class of error as a fabricated verdict.
-        """
         external_id = _short_id(str(payload.get("id") or ""))
         if not external_id:
             raise ProviderInvalidResponseError(
@@ -186,13 +137,6 @@ class OpenAlexClient:
 
 
 def reconstruct_abstract(inverted: Any) -> str | None:
-    """Rebuild abstract text from OpenAlex's inverted index.
-
-    Word order is recoverable; the original punctuation spacing and paragraph
-    structure are not. The result is joined with single spaces, which is a
-    faithful reconstruction of *word sequence* and an honest approximation of
-    everything else.
-    """
     if not isinstance(inverted, dict) or not inverted:
         return None
     positions: dict[int, str] = {}
@@ -230,16 +174,6 @@ accepts would quietly narrow the search.
 
 
 def _matching(work: ProviderWork, *, doi: str = "", arxiv_id: str = "") -> ProviderWork:
-    """The work an identifier lookup asked for, or a typed refusal.
-
-    An exact lookup is the strongest rung of the resolution ladder, and the
-    resolver records its result as CERTAIN. That confidence comes from the
-    question, not from the answer -- so if the record that came back carries a
-    different identifier from the one requested, the certainty would be
-    attached to the wrong paper. Checked here rather than trusted, because a
-    redirect, a merge, or a changed route is the provider's business and can
-    happen without notice.
-    """
     if doi and work.doi and normalise_doi(work.doi) != doi:
         raise ProviderInvalidResponseError(
             "The provider returned a different work from the one requested.",
@@ -260,7 +194,6 @@ def _matching(work: ProviderWork, *, doi: str = "", arxiv_id: str = "") -> Provi
 
 
 def _arxiv_from_doi(doi: str | None) -> str | None:
-    """The arXiv id inside a registered arXiv DOI, if that is what this is."""
     if not doi:
         return None
     lowered = doi.casefold()
@@ -269,11 +202,6 @@ def _arxiv_from_doi(doi: str | None) -> str | None:
 
 
 def normalise_arxiv(value: str | None) -> str | None:
-    """An arXiv id in the form its DOI uses, or None if it is not one.
-
-    Version suffixes are dropped: arXiv mints one DOI per submission, not one
-    per revision, so ``2005.14165v4`` and ``2005.14165`` are the same record.
-    """
     if not value:
         return None
     candidate = value.strip().removeprefix("arXiv:").removeprefix("arxiv:").strip()
@@ -284,24 +212,10 @@ def normalise_arxiv(value: str | None) -> str | None:
 
 
 def _filter_safe(title: str) -> str:
-    """A title, stripped of the punctuation OpenAlex reads as filter syntax.
-
-    In a filter expression a comma separates filters and a colon separates key
-    from value, so a title like "Overfeat: Integrated recognition, localization
-    and detection" is not a search term -- it is three malformed filters, and
-    the API answers 400. Because a failed call degrades the provider for the
-    whole operation, one such reference used to disable OpenAlex for every
-    later query, including the missing-work search.
-    """
     return " ".join(_FILTER_PUNCTUATION.sub(" ", title).split())
 
 
 def normalise_doi(value: str | None) -> str | None:
-    """A bare, lowercased DOI, or None.
-
-    DOIs arrive as ``https://doi.org/10.x``, ``doi:10.x`` and ``10.x``; they are
-    matched by equality downstream, so one shape has to win here.
-    """
     if not value:
         return None
     text = value.strip()

@@ -1,5 +1,3 @@
-"""A schema-validating LLM double for deterministic tests only."""
-
 from __future__ import annotations
 
 import json
@@ -14,8 +12,6 @@ T = TypeVar("T", bound=BaseModel)
 
 
 class ScriptedLLM:
-    """Return only payloads explicitly supplied by a test."""
-
     def __init__(self, responses: dict[str, Any], model: str = "scripted") -> None:
         self._responses = responses
         self._model = model

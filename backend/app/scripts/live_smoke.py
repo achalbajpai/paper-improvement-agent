@@ -1,24 +1,3 @@
-"""The whole product, against everything real, narrated.
-
-``test_e2e_smoke`` proves the same path is *correct*; it scripts the model and
-replays recorded provider bodies, because a test that depends on today's
-sampling tells you about the sampler rather than about your code. This script
-proves the path is *live*: real GROBID, real OpenAlex and Semantic Scholar over
-the network, a real language model choosing what to shorten and what to cite,
-real Pandoc and xelatex producing a PDF at the end.
-
-So it is never part of ``make test``. It costs money, it depends on three third
-parties being up, and it can legitimately fail for reasons that are not defects
--- Semantic Scholar rate-limits unauthenticated callers as a matter of course.
-Those outcomes are reported as what they are rather than crashing the run,
-because "the provider was rate-limited" is a thing this system is supposed to be
-able to say out loud.
-
-Two acceptance cycles, both intents, ending in a PDF on disk::
-
-    make live-smoke
-"""
-
 from __future__ import annotations
 
 import sys
@@ -115,7 +94,6 @@ def walkthrough(session: Session) -> int:
 
 
 def review(session: Session, paper: Paper) -> None:
-    """Never fatal: a review that could not run does not invalidate the rest."""
     step("Reviewing it against real academic search")
     try:
         run = review_service.run_review(session, paper.id, operation_id=repositories.new_id("op"))
@@ -130,7 +108,6 @@ def review(session: Session, paper: Paper) -> None:
 
 
 def cycle(session: Session, paper: Paper, command: str) -> int:
-    """Propose, show what the researcher would see, accept."""
     proposal = proposals.create_proposal(
         session, paper.id, command, operation_id=repositories.new_id("op")
     )
@@ -185,7 +162,6 @@ def fail(message: str) -> int:
 
 
 def report(proposal: EditProposal) -> None:
-    """What the researcher would see before deciding."""
     if proposal.candidate is None:
         return
     snapshot = CandidateRevisionSnapshot.model_validate(proposal.candidate)

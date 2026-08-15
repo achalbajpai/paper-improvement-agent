@@ -1,12 +1,3 @@
-"""Candidate reranking: one LLM call, one schema, one versioned prompt.
-
-This is bounded relevance reranking over retrieved metadata, not semantic
-search. The reranker sees only candidate ids and the metadata that retrieval
-already fetched, and it may return only ids drawn from that set -- which is
-what makes a fabricated recommendation structurally impossible rather than
-merely discouraged. See allowlist.py for the enforcement.
-"""
-
 from __future__ import annotations
 
 from pydantic import BaseModel, Field

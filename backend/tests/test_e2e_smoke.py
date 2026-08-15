@@ -1,25 +1,3 @@
-"""Both acceptance cycles, on a real paper, start to finish.
-
-Upload, real GROBID, style selection, a shortening edit, a citation-adding edit,
-and an export that produces a PDF -- through the same service functions the HTTP
-handlers call, with no step simulated away.
-
-What is real here and what is not is a deliberate line:
-
-* **Real:** GROBID parsing the actual PDF, the postvalidator, the segmenter, the
-  whole editing and verification path, Postgres with its constraints, Pandoc,
-  citeproc, and xelatex. If any of those breaks, this test fails.
-* **Recorded:** provider HTTP, patched at ``_send`` so that retry handling,
-  429 semantics, decoding, and the error taxonomy all still execute against real
-  response objects. Only the socket is replaced.
-* **Scripted:** the LLM, returning fixtures validated against the production
-  schemas. A model cannot be deterministic, and a test that depends on one tells
-  you about today's sampling rather than about your code.
-
-The point is reproducibility, not liveness. Evidence that the real providers and
-a real model work lives in ``make live-smoke``.
-"""
-
 from __future__ import annotations
 
 import json
@@ -59,13 +37,6 @@ pytestmark = [
 
 @pytest.fixture
 def recorded_providers(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Serve captured provider bodies, replacing only the socket.
-
-    Patched at ``_send`` rather than at the client methods, so the bounded retry,
-    the 429 path, JSON decoding, and every typed provider error above it still
-    run exactly as they do in production. Swapping the client out instead would
-    make this an assertion that our fakes agree with each other.
-    """
     openalex = json.loads((FIXTURES / "openalex_search.json").read_text())
     semantic_scholar = json.loads((FIXTURES / "s2_search.json").read_text())
 
@@ -91,11 +62,6 @@ def _delimited(user_prompt: str) -> str:
 
 
 def _listed_ids(user_prompt: str) -> list[str]:
-    """The identifiers the server offered, in the order it offered them.
-
-    A scripted model must choose from what it was given, exactly as a real one
-    must: anything else would pass a grounding check the production path applies.
-    """
     found: list[str] = []
     for line in user_prompt.splitlines():
         head, separator, rest = line.partition(": ")
@@ -105,12 +71,6 @@ def _listed_ids(user_prompt: str) -> list[str]:
 
 
 def shortening_model(section_id: str) -> ScriptedLLM:
-    """Routes to SHORTEN_SECTION and shortens by dropping trailing sentences.
-
-    Extractive by construction: it only ever returns a prefix of the sentences it
-    was given, so no protected token can be damaged and nothing can be invented.
-    That is what makes the outcome deterministic without weakening any check.
-    """
 
     def rewrite(prompt: Prompt) -> dict[str, Any]:
         sentences = _delimited(prompt.user).split(". ")
@@ -138,7 +98,6 @@ def shortening_model(section_id: str) -> ScriptedLLM:
 
 
 def citing_model(section_id: str) -> ScriptedLLM:
-    """Routes to ADD_SUPPORTING_CITATIONS and attaches the first offered work."""
 
     def claims(prompt: Prompt) -> dict[str, Any]:
         return {
@@ -209,7 +168,6 @@ def citing_model(section_id: str) -> ScriptedLLM:
 def test_two_acceptance_cycles_end_in_an_exported_pdf(
     db: Session, recorded_providers: None
 ) -> None:
-    """Upload to PDF, with both intents accepted along the way."""
     paper = pipeline.create_paper(
         db, filename="C_numeric_dense.pdf", content=CORPUS_PDF.read_bytes()
     )
@@ -298,7 +256,6 @@ def test_two_acceptance_cycles_end_in_an_exported_pdf(
 
 
 def _editable_section(document: Document) -> str:
-    """The first section with enough prose to be worth shortening."""
     for section in document.sections:
         words = sum(len(paragraph.text.split()) for paragraph in section.paragraphs)
         if words > 200:

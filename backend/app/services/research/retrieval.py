@@ -1,21 +1,3 @@
-"""AcademicRetrievalService: finding candidate works, and vouching for them.
-
-The output is a ``VerifiedCandidateSet``, and "verified" means three specific
-things, each of which is a way a citation-suggesting system usually goes wrong:
-
-1. **The work exists.** Every candidate came back from a provider call and is
-   snapshotted; none was described by a model.
-2. **The metadata is complete enough to cite.** A suggestion the reader cannot
-   look up is not a citation, it is a gesture at one. Incomplete records are
-   dropped here rather than filtered later, so no downstream path has the option
-   of inserting one.
-3. **The set is closed.** Candidate ids are issued by the server; a reranker may
-   only return ids from this set, and anything else raises.
-
-Retrieval always reports how it went. Finding nothing and being unable to look
-are different outcomes with different codes, and both are visible to the caller.
-"""
-
 from __future__ import annotations
 
 import time
@@ -36,15 +18,12 @@ from app.settings import get_settings
 
 @dataclass(frozen=True)
 class Candidate:
-    """One work that may be offered to a reranker, and then to a researcher."""
-
     id: str
     work: ProviderWork
 
     csl: CSLItem
 
     def summary(self) -> str:
-        """The metadata a reranker is shown. Provider-derived, so untrusted."""
         authors = ", ".join(self.work.authors[:3]) or "unknown authors"
         year = self.work.year or "n.d."
         parts = [f"{self.work.title} ({authors}, {year})"]
@@ -57,8 +36,6 @@ class Candidate:
 
 @dataclass
 class VerifiedCandidateSet:
-    """Candidates for one claim, plus an honest account of the search."""
-
     query: str
     candidates: list[Candidate] = field(default_factory=list)
     degradations: tuple[ProviderDegradation, ...] = ()
@@ -74,8 +51,6 @@ class VerifiedCandidateSet:
 
 
 class AcademicRetrievalService:
-    """Searches both providers for works that could support a claim."""
-
     def __init__(
         self,
         session: ProviderSession,
@@ -94,12 +69,6 @@ class AcademicRetrievalService:
     def search(
         self, query: str, deadline: Deadline, *, limit: int | None = None
     ) -> VerifiedCandidateSet:
-        """Search both providers and return the works fit to be cited.
-
-        Both are queried even when the first succeeds. They index different
-        corpora, and a citation recommender that only ever sees one of them is
-        systematically blind in a way the researcher cannot detect.
-        """
         settings = get_settings()
         keep = limit or settings.max_candidates_per_query
         result = VerifiedCandidateSet(query=query)
@@ -125,12 +94,6 @@ class AcademicRetrievalService:
     def _search_one(
         self, provider: ProviderName, query: str, limit: int, deadline: Deadline
     ) -> list[ProviderWork]:
-        """The limit is part of the cache key.
-
-        Without it a search for ten results can be served the three a narrower
-        earlier call stored, and the shortfall looks like the provider having
-        nothing more to offer.
-        """
         if self.session.is_degraded(provider) or deadline.expired:
             return []
 
@@ -187,7 +150,6 @@ def _provider_timeout() -> float:
 
 
 def _deduplicate_works(works: list[ProviderWork]) -> list[ProviderWork]:
-    """Merge cross-provider representations before assigning candidate ids."""
     accepted: list[ProviderWork] = []
     seen_keys: set[str] = set()
     for work in works:

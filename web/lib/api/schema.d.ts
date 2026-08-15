@@ -28,21 +28,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Ready
-         * @description What this instance can actually do right now.
-         *
-         *     ``status`` is derived rather than asserted. A readiness probe that returns
-         *     ``ok`` with a dead database is not a probe, and Compose is configured to
-         *     gate on this endpoint -- so a hard-coded ``ok`` would report every instance
-         *     healthy including the ones that are not.
-         *
-         *     The dependencies are reported separately because they fail separately, and
-         *     each disables a different part of the product: without Pandoc nothing
-         *     exports, without GROBID nothing parses, without a model there is no review
-         *     or editing. The UI reads these to disable what cannot work rather than
-         *     letting a researcher discover it by clicking.
-         */
+        /** Ready */
         get: operations["ready_ready_get"];
         put?: never;
         post?: never;
@@ -94,14 +80,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get Manuscript
-         * @description The current revision's parsed content.
-         *
-         *     Separate from ``GET /papers/{id}`` because it is a different size of thing:
-         *     the detail response is polled after every operation, and a whole manuscript
-         *     does not belong in it.
-         */
+        /** Get Manuscript */
         get: operations["get_manuscript_papers__paper_id__manuscript_get"];
         put?: never;
         post?: never;
@@ -141,13 +120,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /**
-         * Set Citation Style
-         * @description The researcher decides the style; detection only suggested one.
-         *
-         *     Not idempotency-keyed: PATCH with a literal value is naturally idempotent,
-         *     and requiring a key for a preference toggle would be ceremony without safety.
-         */
+        /** Set Citation Style */
         patch: operations["set_citation_style_papers__paper_id__citation_style_patch"];
         trace?: never;
     };
@@ -199,12 +172,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /**
-         * Handle Finding
-         * @description Mark one finding as dealt with, or put it back.
-         *
-         *     The finding stays in its run and in the run's counts.
-         */
+        /** Handle Finding */
         patch: operations["handle_finding_findings__finding_id__patch"];
         trace?: never;
     };
@@ -269,14 +237,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Reject
-         * @description Rejection is a state transition, and it is claimed like every other one.
-         *
-         *     Without a claim, a lost response followed by the client's retry answers
-         *     with a state conflict rather than replaying the success it never saw --
-         *     which reads to the researcher as though the rejection failed.
-         */
+        /** Reject */
         post: operations["reject_proposals__proposal_id__reject_post"];
         delete?: never;
         options?: never;
@@ -385,7 +346,6 @@ export interface components {
         };
         /**
          * BlockerCode
-         * @description Things the system refuses to do, whatever the researcher says.
          * @enum {string}
          */
         BlockerCode: "PROTECTED_TOKEN_VIOLATION" | "CITATION_INVENTED" | "UNSUPPORTED_NOVELTY" | "ATTACHMENT_CONTRADICTED" | "NEW_CITATION_UNSUPPORTED" | "NEW_REFERENCE_INCOMPLETE" | "BLOCK_MUTATED" | "STRUCTURE_DAMAGED" | "PROSE_MUTATED" | "IDENTITY_INVARIANT_VIOLATED";
@@ -516,10 +476,7 @@ export interface components {
             /** Summary */
             summary: string;
         };
-        /**
-         * EditScopeOut
-         * @description Which part of the paper the command was resolved to, before it ran.
-         */
+        /** EditScopeOut */
         EditScopeOut: {
             /** Section Id */
             section_id: string;
@@ -565,10 +522,7 @@ export interface components {
                 [key: string]: unknown;
             };
         };
-        /**
-         * ErrorEnvelope
-         * @description Every non-2xx response body. One shape, always.
-         */
+        /** ErrorEnvelope */
         ErrorEnvelope: {
             error: components["schemas"]["ErrorDetail"];
         };
@@ -585,14 +539,7 @@ export interface components {
             /** Source Url */
             source_url?: string | null;
         };
-        /**
-         * ExportPreflight
-         * @description What export will and will not be able to do, before it is started.
-         *
-         *     Blockers and acknowledgeable warnings are separate lists because they are
-         *     different questions: one is "this cannot be done", the other is "this can be
-         *     done at a cost you must accept".
-         */
+        /** ExportPreflight */
         ExportPreflight: {
             /** Revision Id */
             revision_id: string;
@@ -669,15 +616,7 @@ export interface components {
             /** Handled */
             handled: boolean;
         };
-        /**
-         * InlineCitation
-         * @description One citation occurrence, as the reader saw it and as the parser understood it.
-         *
-         *     ``raw_marker`` is what the author wrote and is always shown. The structured
-         *     fields say how much of it was understood, so a marker the parser could only
-         *     keep verbatim is visibly different from one it resolved -- rather than both
-         *     rendering as confident-looking brackets.
-         */
+        /** InlineCitation */
         InlineCitation: {
             /** Citation Id */
             citation_id: string;
@@ -697,10 +636,7 @@ export interface components {
              */
             fidelity_exportable: boolean;
         };
-        /**
-         * InlineRun
-         * @description One span of a paragraph: prose, or a citation occurrence.
-         */
+        /** InlineRun */
         InlineRun: {
             /**
              * Kind
@@ -714,15 +650,7 @@ export interface components {
             text: string;
             citation?: components["schemas"]["InlineCitation"] | null;
         };
-        /**
-         * ManuscriptOut
-         * @description The parsed manuscript, in a shape built for reading rather than for storage.
-         *
-         *     Deliberately not the stored ``Document``: that carries preserved blocks,
-         *     hashes, and per-item citation structure a reader has no use for, and shipping
-         *     it would make the storage model a public contract that could not then be
-         *     changed without breaking clients.
-         */
+        /** ManuscriptOut */
         ManuscriptOut: {
             /** Paper Id */
             paper_id: string;
@@ -838,14 +766,7 @@ export interface components {
              */
             word_count: number;
         };
-        /**
-         * ParseQuality
-         * @description What the parse got, and what it did not.
-         *
-         *     Surfaced before any review or edit, because a researcher deciding whether to
-         *     trust this tool needs the extraction's limits stated up front rather than
-         *     discovered at export.
-         */
+        /** ParseQuality */
         ParseQuality: {
             /** Sections */
             sections: number;
@@ -893,14 +814,7 @@ export interface components {
             /** Clusters */
             clusters: number;
         };
-        /**
-         * ParseQualityLinkage
-         * @description How marker-to-bibliography linkage held up under independent checking.
-         *
-         *     ``checked`` is the honest denominator: items where a second, unrelated signal
-         *     existed at all. Reporting accuracy over every item would quietly count
-         *     unverifiable ones as successes.
-         */
+        /** ParseQualityLinkage */
         ParseQualityLinkage: {
             /** Family */
             family: string;
@@ -986,14 +900,7 @@ export interface components {
          * @enum {string}
          */
         ProposalState: "PENDING" | "AWAITING_DECISION" | "BLOCKED" | "ACCEPTED" | "REJECTED" | "FAILED" | "SUPERSEDED";
-        /**
-         * ReferenceOut
-         * @description One bibliography entry, in the state the pipeline left it.
-         *
-         *     Normalisation status and resolution method travel with the entry because a
-         *     reference that is present but unresolved supports a different kind of trust
-         *     than one matched to a provider record by DOI.
-         */
+        /** ReferenceOut */
         ReferenceOut: {
             /** Id */
             id: string;
@@ -1029,13 +936,11 @@ export interface components {
         };
         /**
          * ResolutionConfidence
-         * @description Confidence is read off observable evidence, never asserted by a model.
          * @enum {string}
          */
         ResolutionConfidence: "CERTAIN" | "PROBABLE" | "UNCERTAIN" | "NONE";
         /**
          * ResolutionMethod
-         * @description How a reference was matched to a provider record, strongest first.
          * @enum {string}
          */
         ResolutionMethod: "DOI" | "ARXIV" | "PUBMED" | "EXTERNAL_ID" | "TITLE_AUTHOR_YEAR" | "TITLE_ONLY" | "UNRESOLVED";
@@ -1084,7 +989,6 @@ export interface components {
         };
         /**
          * SemanticParseStatus
-         * @description How much of the marker the parser actually understood.
          * @enum {string}
          */
         SemanticParseStatus: "STRUCTURED" | "PARTIAL_MODIFIERS" | "RAW_ONLY";
@@ -1104,14 +1008,7 @@ export interface components {
          * @enum {string}
          */
         StyleConfidence: "HIGH" | "LOW" | "UNKNOWN";
-        /**
-         * SuggestedWork
-         * @description A work the manuscript does not cite, as the provider described it.
-         *
-         *     Every field is read from the snapshotted ``source_records`` row, so a
-         *     suggestion the researcher cannot look up cannot be rendered. ``rationale``
-         *     is the only model-authored string here and is labelled as interpretation.
-         */
+        /** SuggestedWork */
         SuggestedWork: {
             /** Source Record Id */
             source_record_id: string;
@@ -1137,13 +1034,6 @@ export interface components {
         };
         /**
          * SupportVerdict
-         * @description Whether a cited work supports the claim it is attached to.
-         *
-         *     ``UNSUPPORTED`` is deliberately absent. Failing to find support in an
-         *     abstract is not evidence that the cited paper lacks it -- the material may
-         *     be in the full text -- and reporting it as unsupported would launder absence
-         *     of evidence into a finding against the researcher's citation. Every verdict
-         *     is an abstract-level assessment and is labelled as one.
          * @enum {string}
          */
         SupportVerdict: "SUPPORTED" | "PARTIALLY_SUPPORTED" | "CONTRADICTED" | "UNVERIFIABLE_FROM_AVAILABLE_EVIDENCE" | "EVIDENCE_UNAVAILABLE" | "SOURCE_IDENTITY_UNCERTAIN" | "SOURCE_UNRESOLVED";
@@ -1162,7 +1052,6 @@ export interface components {
         };
         /**
          * WarningCode
-         * @description Consequences a researcher can knowingly accept.
          * @enum {string}
          */
         WarningCode: "CITATION_REMOVED" | "REFERENCE_LEFT_UNCITED" | "ATTACHMENT_INVALIDATED" | "NEW_CITATION_PARTIAL_SUPPORT" | "NEW_CITATION_SOURCE_UNCERTAIN" | "TARGET_NOT_MET" | "PROVIDER_DEGRADED" | "FIDELITY_LOSS";

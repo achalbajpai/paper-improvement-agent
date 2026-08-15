@@ -1,10 +1,3 @@
-"""Claim extraction: one LLM call, one schema, one versioned prompt.
-
-The model selects sentence identifiers. It never returns manuscript text, so a
-claim cannot be attached to a sentence the manuscript does not contain: the
-server owns every quoted string and builds the ClaimAnchor itself.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -19,14 +12,6 @@ PROMPT_VERSION = "claims/v1"
 
 @dataclass(frozen=True)
 class ClaimTarget:
-    """One sentence the extractor called a citable claim, and its search topic.
-
-    Both review passes work from these, so a paragraph is extracted once however
-    many passes look at it. The topic is the only model-authored string that ever
-    leaves this system, and it goes to a search API rather than into the
-    manuscript.
-    """
-
     sentence: Sentence
     topic: str
 

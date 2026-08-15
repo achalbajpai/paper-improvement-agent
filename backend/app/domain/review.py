@@ -1,18 +1,3 @@
-"""Review anchors, verdicts, and findings.
-
-Two anchor types, both of which exist so that no quoted text ever originates
-from a model.
-
-* ``ClaimAnchor`` points at a sentence in the manuscript. The model returns a
-  sentence id; the server looks up the text.
-* ``EvidenceAnchor`` points at a span of a provider-supplied abstract, snapshotted
-  in ``source_records``. The model returns a span id; the server looks up the
-  text.
-
-Because both are id-based, "the model quoted something the source does not say"
-is not a class of bug that can occur here.
-"""
-
 from __future__ import annotations
 
 from enum import StrEnum
@@ -21,15 +6,6 @@ from pydantic import BaseModel, ConfigDict
 
 
 class SupportVerdict(StrEnum):
-    """Whether a cited work supports the claim it is attached to.
-
-    ``UNSUPPORTED`` is deliberately absent. Failing to find support in an
-    abstract is not evidence that the cited paper lacks it -- the material may
-    be in the full text -- and reporting it as unsupported would launder absence
-    of evidence into a finding against the researcher's citation. Every verdict
-    is an abstract-level assessment and is labelled as one.
-    """
-
     SUPPORTED = "SUPPORTED"
     PARTIALLY_SUPPORTED = "PARTIALLY_SUPPORTED"
     CONTRADICTED = "CONTRADICTED"
@@ -51,8 +27,6 @@ MODEL_SELECTABLE_VERDICTS = (
 
 
 class ClaimAnchor(BaseModel):
-    """A position in the manuscript, plus enough to detect that it moved."""
-
     model_config = ConfigDict(frozen=True)
 
     paragraph_id: str
@@ -65,8 +39,6 @@ class ClaimAnchor(BaseModel):
 
 
 class EvidenceAnchor(BaseModel):
-    """A span of a snapshotted provider abstract."""
-
     model_config = ConfigDict(frozen=True)
 
     source_record_id: str
@@ -89,13 +61,6 @@ class FindingKind(StrEnum):
 
 
 class ReviewFinding(BaseModel):
-    """One reviewed (claim, occurrence, reference) triple.
-
-    Support is evaluated per triple rather than per claim, because ``[2, 5]``
-    is two distinct assertions of support and collapsing them would hide which
-    one is weak.
-    """
-
     model_config = ConfigDict(frozen=True)
 
     id: str
@@ -130,12 +95,6 @@ class ReviewFinding(BaseModel):
 
 
 class ProviderDegradation(BaseModel):
-    """A provider that was unavailable during a run.
-
-    Always reported. A review that silently skipped a provider is a review whose
-    coverage the researcher cannot judge.
-    """
-
     model_config = ConfigDict(frozen=True)
 
     provider: str

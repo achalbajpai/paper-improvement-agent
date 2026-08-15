@@ -1,15 +1,3 @@
-"""Semantic Scholar adapter.
-
-Semantic Scholar returns plain abstract text, which OpenAlex does not, so it
-carries real weight in this system rather than being a redundant second opinion.
-
-The adapter accounts for its observed unauthenticated behaviour: ``/paper/search`` returned ``429``
-with ``{"message": ..., "code": ...}`` and no ``Retry-After``, while
-``/paper/DOI:...`` returned ``200``. So a 429 here is the expected weather, not a
-malfunction, and the caller degrades on it rather than treating it as an outage.
-Exactly one bounded retry is attempted, in ``providers/http.py``.
-"""
-
 from __future__ import annotations
 
 import re
@@ -44,11 +32,6 @@ class SemanticScholarClient:
         timeout: float | None = None,
         on_attempt: Callable[[], None] | None = None,
     ) -> None:
-        """``on_attempt`` is invoked once per outbound HTTP request.
-
-        Supplied by the operation that owns the provider budget, so a call the
-        transport retries is counted twice -- which is what it costs.
-        """
         self.on_attempt = on_attempt
         settings = get_settings()
         self.timeout = timeout if timeout is not None else settings.provider_timeout_seconds
@@ -110,12 +93,6 @@ class SemanticScholarClient:
 
     @classmethod
     def to_work(cls, payload: dict[str, Any]) -> ProviderWork:
-        """One provider record, or a typed refusal.
-
-        See the note on the OpenAlex adapter: a payload with no ``paperId`` is
-        an unrecognised response, and turning it into an identity-less work lets
-        a confident resolution be built on nothing.
-        """
         paper_id = str(payload.get("paperId") or "")
         if not paper_id:
             raise ProviderInvalidResponseError(
@@ -159,7 +136,6 @@ def _arxiv(external: dict[str, Any]) -> str | None:
 
 
 def _matching(work: ProviderWork, *, doi: str = "", arxiv_id: str = "") -> ProviderWork:
-    """Refuse an exact-identifier response that identifies a different work."""
     if doi and work.doi and normalise_doi(work.doi) != doi:
         raise ProviderInvalidResponseError(
             "The provider returned a different work from the one requested.",

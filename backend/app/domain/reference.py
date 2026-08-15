@@ -1,18 +1,3 @@
-"""References and their canonical CSL form.
-
-One rule governs this module: **every reference carries a valid CSL item, with no
-exceptions.** A reference GROBID could not parse still becomes a CSL item of type
-``document`` whose raw text is preserved.
-
-The alternative -- an optional CSL field -- pushes an ``if csl is None`` branch
-into the exporter, the resolver, the reviewer, and the UI, and the one that gets
-forgotten silently drops a bibliography entry from the author's paper.
-
-The raw text goes in ``custom``, never in ``note``: several CSL styles render
-``note``, so parking unparsed text there would print parser debris into a
-formatted bibliography.
-"""
-
 from __future__ import annotations
 
 from enum import StrEnum
@@ -35,8 +20,6 @@ class NormalizationStatus(StrEnum):
 
 
 class ResolutionMethod(StrEnum):
-    """How a reference was matched to a provider record, strongest first."""
-
     DOI = "DOI"
     ARXIV = "ARXIV"
     PUBMED = "PUBMED"
@@ -47,8 +30,6 @@ class ResolutionMethod(StrEnum):
 
 
 class ResolutionConfidence(StrEnum):
-    """Confidence is read off observable evidence, never asserted by a model."""
-
     CERTAIN = "CERTAIN"
 
     PROBABLE = "PROBABLE"
@@ -58,13 +39,6 @@ class ResolutionConfidence(StrEnum):
 
 
 class CSLItem(BaseModel):
-    """A CSL-JSON item.
-
-    CSL-JSON is an open schema, so unknown keys are preserved rather than
-    dropped: discarding a field we do not model would corrupt a bibliography we
-    were asked to protect.
-    """
-
     model_config = ConfigDict(extra="allow")
 
     id: str
@@ -91,19 +65,10 @@ class CSLItem(BaseModel):
         return str(value)
 
     def is_complete_for_insertion(self) -> bool:
-        """Whether this item may be *added* to a manuscript.
-
-        Adding a citation is a stronger act than preserving one. A reference the
-        author already chose is kept whatever its quality, but a reference this
-        system introduces must be complete enough that a reader can find the
-        work: a title, at least one author, and a year.
-        """
         return bool(self.title) and bool(self.author) and self.year is not None
 
 
 class ReferenceRecord(BaseModel):
-    """One bibliography entry, as parsed and as resolved."""
-
     model_config = ConfigDict(frozen=True)
 
     id: str
@@ -121,13 +86,6 @@ class ReferenceRecord(BaseModel):
 
     @model_validator(mode="after")
     def _csl_id_matches(self) -> ReferenceRecord:
-        """``csl.id`` must equal ``id``.
-
-        Export drives the bibliography from ``csl.id``, and citations refer to
-        the record by ``id``. If the two disagree, citeproc silently emits no
-        bibliography entry for that reference: the citation renders, the entry
-        vanishes, and nothing errors. This check is why that cannot happen.
-        """
         if self.csl.id != self.id:
             raise IdentityInvariantError(
                 "A reference's CSL id must equal its record id.",
@@ -142,12 +100,6 @@ class ReferenceRecord(BaseModel):
 
     @property
     def is_resolved(self) -> bool:
-        """Whether the identity of the cited work is established.
-
-        UNCERTAIN is deliberately *not* resolved. A weak title match is not
-        knowledge of which paper this is, and a support verdict issued against
-        the wrong paper is worse than no verdict.
-        """
         return self.resolution_confidence in (
             ResolutionConfidence.CERTAIN,
             ResolutionConfidence.PROBABLE,
@@ -155,5 +107,4 @@ class ReferenceRecord(BaseModel):
 
 
 def csl_for_unparseable(reference_id: str, raw_text: str) -> CSLItem:
-    """A valid CSL item for a reference that could not be parsed at all."""
     return CSLItem(id=reference_id, type="document", custom={RAW_TEXT_KEY: raw_text})

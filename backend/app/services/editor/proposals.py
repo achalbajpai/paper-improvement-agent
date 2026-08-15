@@ -1,21 +1,3 @@
-"""Turning one command into one proposal row.
-
-The row is written **before** the work starts. A command that finds nothing, or
-errors, or is refused, still leaves a record saying which command it was and what
-happened to it -- because the alternative is a researcher who typed something,
-waited, and got a page with nothing new on it and no way to tell whether the
-system had declined, failed, or found nothing.
-
-That is why ``NO_RESULTS`` lands here as ``FAILED`` with a code and no candidate
-snapshot. The absent candidate is the signal that no edit exists to review; the
-code is the signal that the search ran and came back empty, as distinct from a
-provider that could not be reached.
-
-Shaped like the review: a short transaction to establish what is being edited,
-the slow model and provider work with no transaction open, then a short
-transaction to write the outcome.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -72,8 +54,6 @@ DECIDED_OUTCOMES = frozenset(
 
 @dataclass
 class EditOutcome:
-    """What an intent produced, before anything decides whether to offer it."""
-
     intent: EditIntent
     document: Document
     delta: ComputedEditDelta
@@ -94,12 +74,6 @@ def create_proposal(
     target_section_id: str | None = None,
     target_paragraph_id: str | None = None,
 ) -> EditProposal:
-    """Run one command against the paper's current revision.
-
-    A target is present when the researcher chose one -- usually by answering the
-    question a previous ambiguous command raised. It binds where the command
-    acts; the command itself still says what to do.
-    """
     settings = get_settings()
     deadline = Deadline.after("edit", settings.proposal_deadline_seconds)
     model: StructuredLLM = llm or build_llm()
@@ -232,7 +206,6 @@ def create_proposal(
 def _record_checks(
     session: Session, proposal_id: str, checks: tuple[VerificationCheck, ...]
 ) -> None:
-    """Store each check individually, so a stored verdict stays traceable."""
     for check in checks:
         session.add(
             VerificationCheckRow(
@@ -249,14 +222,6 @@ def _record_checks(
 
 
 def _explain(outcome: EditOutcome, document: Document) -> str:
-    """A sentence for the researcher, shown beside the computed delta.
-
-    Never instead of it. The delta is what happened; this is only a readable
-    summary of the intent that produced it.
-
-    It names what was edited, because "shortened by 126 words" is the same
-    sentence whether one paragraph changed or the whole paper did.
-    """
     if outcome.shorten is not None:
         removed = outcome.delta.scope_words_before - outcome.delta.scope_words_after
         mode = " by removing whole sentences" if outcome.shorten.extractive_only else ""
@@ -282,12 +247,6 @@ def _where(outcome: EditOutcome, document: Document) -> str:
 
 
 def _scope(outcome: EditOutcome, document: Document) -> EditScope | None:
-    """The planner's decisions, in the shape the researcher reads them.
-
-    Only shortening has a plan; adding citations selects sentences rather than
-    allocating a reduction, so it reports the section it acted on and nothing
-    about paragraphs it declined to touch.
-    """
     section_id = (
         outcome.shorten.plan.section_id if outcome.shorten is not None else outcome.section_id
     )
@@ -373,15 +332,6 @@ def _fail(
     intent: EditIntent | None,
     provider_session: ProviderSession,
 ) -> EditProposal:
-    """Record why the command produced nothing, and leave no candidate.
-
-    The two facts a researcher needs are both here: the code says what happened,
-    and the null candidate says there is nothing to review. Neither is inferable
-    from the other, so both are stored.
-
-    The intent is written here rather than when routing returned it, because the
-    rollback that precedes this call discards anything staged before the failure.
-    """
     proposal = repositories.get_proposal(session, proposal_id)
     proposal.state = ProposalState.FAILED.value
     proposal.intent = intent.value if intent is not None else None
@@ -399,30 +349,11 @@ def _fail(
 
 
 def _readable(error: AppError) -> str:
-    """The most specific thing the failure knows about itself.
-
-    An ambiguous command carries a clarification naming what the researcher must
-    choose between, and that is the entire useful content of the failure. It used
-    to be computed by the router, packed into ``details``, and then dropped here
-    in favour of ``str(error)`` -- so the system worked out the question it needed
-    to ask and then declined to ask it.
-    """
     clarification = str(error.details.get("clarification") or "").strip()
     return (clarification or str(error))[:500]
 
 
 def _refuse_overlap(session: Session, paper_id: str) -> None:
-    """One edit at a time per paper.
-
-    Two proposals built against the same revision would both be valid and only
-    one could be accepted, so the second is refused now rather than at acceptance
-    after the researcher has read it.
-
-    Callers must hold the paper lock. This read alone cannot exclude a
-    concurrent insert; the partial unique index on ``edit_proposals`` is what
-    makes the invariant true, and this is what makes losing it rare and the
-    error message good.
-    """
     active = repositories.active_proposals(session, paper_id)
     if active:
         raise OperationInProgressError(

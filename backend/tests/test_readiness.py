@@ -1,5 +1,3 @@
-"""Readiness must describe scholarly coverage, not merely process health."""
-
 from __future__ import annotations
 
 from typing import Any

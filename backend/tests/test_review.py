@@ -1,13 +1,3 @@
-"""Grounded review.
-
-Two families of test. The first checks the grounding boundary directly: what
-happens when a model returns an identifier nobody gave it. The second runs the
-whole review over a real parsed paper with a scripted model and stubbed
-providers, and checks the properties that make a verdict trustworthy -- one
-verdict per (claim, occurrence, reference), server-owned quoted text, and source
-state decided by the server rather than by the model.
-"""
-
 from __future__ import annotations
 
 import re
@@ -42,11 +32,6 @@ ABSTRACT = (
 
 
 def test_an_unknown_identifier_raises_rather_than_being_dropped() -> None:
-    """The line that stops an invented citation.
-
-    Silently discarding the unknown id would let a half-invented response through
-    labelled as if it were sound.
-    """
     allowlist = Allowlist("sentence", {"sent_a": "one", "sent_b": "two"})
 
     with pytest.raises(GroundingValidationError) as caught:
@@ -63,8 +48,6 @@ def test_resolve_all_is_all_or_nothing() -> None:
 
 
 def test_a_verdict_outside_the_permitted_set_is_refused() -> None:
-    """UNSUPPORTED is deliberately absent, and that boundary is enforced here
-    rather than trusted to a provider honouring ``strict: true``."""
     with pytest.raises(GroundingValidationError):
         require_choice(
             "UNSUPPORTED",
@@ -95,7 +78,6 @@ def test_the_error_reports_the_id_and_not_the_manuscript() -> None:
 
 
 def test_evidence_spans_index_into_the_snapshotted_abstract() -> None:
-    """The server quotes; the model only points."""
     spans = split_abstract(ABSTRACT)
 
     assert len(spans) == 3
@@ -109,8 +91,6 @@ def test_an_empty_abstract_yields_no_spans_rather_than_one_empty_one() -> None:
 
 
 class StubResolver:
-    """Stands in for the ladder so a review test does not depend on a provider."""
-
     def __init__(self, resolution: Resolution, abstract: str | None = ABSTRACT) -> None:
         self._resolution = resolution
         self._abstract = abstract
@@ -136,11 +116,6 @@ def resolved_work() -> ProviderWork:
 
 
 def scripted(verdict: str = "SUPPORTED", span_ids: list[str] | None = None) -> ScriptedLLM:
-    """A model that calls every offered sentence a claim.
-
-    Deliberately maximal: it exercises every downstream path rather than letting
-    a selective stand-in quietly skip the interesting citations.
-    """
     return ScriptedLLM(
         {
             "claims": lambda prompt: {
@@ -181,19 +156,12 @@ def _offered_candidate_ids(user_prompt: str) -> list[str]:
 
 
 def _offered_sentence_ids(user_prompt: str) -> list[str]:
-    """Read back exactly the ids the server put in the prompt.
-
-    A stand-in that invented its own ids would be testing the grounding
-    validator rather than the review.
-    """
     return [
         match.group(1) for line in user_prompt.splitlines() if (match := _SENTENCE_LINE.match(line))
     ]
 
 
 class NullStore:
-    """Snapshotting is exercised in its own test; here it only issues ids."""
-
     def __init__(self) -> None:
         self.snapshots: list[ProviderWork] = []
 
@@ -203,8 +171,6 @@ class NullStore:
 
 
 class StubRetrieval:
-    """Stands in for both providers, returning a fixed candidate set."""
-
     def __init__(self, works: list[ProviderWork] | None = None) -> None:
         self._works = works or []
         self.queries: list[str] = []
@@ -261,11 +227,6 @@ def run_review(runner: ReviewRunner, document: Any) -> Any:
 
 
 def test_one_verdict_per_claim_occurrence_reference_triple(document: Any) -> None:
-    """``[2, 5]`` is two assertions of support, not one.
-
-    Collapsing them would hide which of the two is weak, which is the only
-    actionable part of the finding.
-    """
     runner = build_runner(
         scripted(), Resolution(ResolutionMethod.DOI, ResolutionConfidence.CERTAIN, resolved_work())
     )
@@ -301,8 +262,6 @@ def test_evidence_is_anchored_never_quoted_by_the_model(document: Any) -> None:
 
 
 def test_an_uncertain_resolution_never_becomes_a_support_verdict(document: Any) -> None:
-    """A verdict against a paper we merely suspect is the cited one is worse
-    than admitting we do not know which paper it is."""
     runner = build_runner(
         scripted(),
         Resolution(ResolutionMethod.TITLE_ONLY, ResolutionConfidence.UNCERTAIN, resolved_work()),
@@ -324,7 +283,6 @@ def test_an_unresolved_reference_is_reported_as_source_state(document: Any) -> N
 
 
 def test_a_work_with_no_abstract_is_evidence_unavailable_not_unsupported(document: Any) -> None:
-    """Failing to find support is not evidence that support is absent."""
     runner = build_runner(
         scripted(),
         Resolution(ResolutionMethod.DOI, ResolutionConfidence.CERTAIN, resolved_work()),
@@ -339,18 +297,6 @@ def test_a_work_with_no_abstract_is_evidence_unavailable_not_unsupported(documen
 def test_a_fabricated_span_id_discards_its_response_without_killing_the_run(
     document: Any,
 ) -> None:
-    """A fabricated id costs its own response, and nothing else.
-
-    The response is still refused whole -- no finding built on an invented span
-    reaches the researcher. What changed is the blast radius: aborting the run
-    meant one bad reply discarded every sound paragraph with it, and over a whole
-    manuscript a rejection is near-certain, so the strict reading made
-    full-manuscript review impossible rather than safe.
-
-    The rejection is counted, and the assertions that response would have
-    produced stay uncounted -- unassessed, which the coverage panel already
-    refuses to report as a pass.
-    """
     runner = build_runner(
         scripted(span_ids=["span_never_issued"]),
         Resolution(ResolutionMethod.DOI, ResolutionConfidence.CERTAIN, resolved_work()),
@@ -367,7 +313,6 @@ def test_a_fabricated_span_id_discards_its_response_without_killing_the_run(
 
 
 def test_a_reference_is_resolved_once_however_often_it_is_cited(document: Any) -> None:
-    """Resolution is the expensive part; citing a work twice must not pay twice."""
     runner = build_runner(
         scripted(), Resolution(ResolutionMethod.DOI, ResolutionConfidence.CERTAIN, resolved_work())
     )
@@ -378,7 +323,6 @@ def test_a_reference_is_resolved_once_however_often_it_is_cited(document: Any) -
 
 
 def test_claim_anchors_carry_the_segmenter_version(document: Any) -> None:
-    """An anchor compared across segmenter versions points at the wrong sentence."""
     runner = build_runner(
         scripted(), Resolution(ResolutionMethod.DOI, ResolutionConfidence.CERTAIN, resolved_work())
     )
@@ -427,11 +371,6 @@ def missing_work_runner(works: list[ProviderWork]) -> tuple[ReviewRunner, StubRe
 
 
 def test_missing_work_is_searched_and_reported_with_its_sources(document: Any) -> None:
-    """The half of peer review that finds what the author did not cite.
-
-    Without this the review can only grade citations that already exist, which
-    is not the question a researcher asks of a reviewer.
-    """
     runner, retrieval = missing_work_runner([uncited_work()])
     outcome = run_review(runner, document)
 
@@ -447,7 +386,6 @@ def test_missing_work_is_searched_and_reported_with_its_sources(document: Any) -
 
 
 def test_a_suggestion_is_never_a_work_already_in_the_bibliography(document: Any) -> None:
-    """Recommending a paper the author already cites is confidently wrong."""
     cited = next(reference for reference in document.references if reference.csl.title)
     already = ProviderWork(
         provider=ProviderName.OPENALEX,
@@ -465,7 +403,6 @@ def test_a_suggestion_is_never_a_work_already_in_the_bibliography(document: Any)
 
 
 def test_a_work_with_no_link_is_never_suggested(document: Any) -> None:
-    """A suggestion the researcher cannot open is not a recommendation."""
     unlinkable = ProviderWork(
         provider=ProviderName.OPENALEX,
         external_id="W_nolink",
@@ -480,7 +417,6 @@ def test_a_work_with_no_link_is_never_suggested(document: Any) -> None:
 
 
 def test_an_uncited_claim_says_what_the_search_found(document: Any) -> None:
-    """ "No citation here" alone invites the reader to assume nothing was looked for."""
     runner, _ = missing_work_runner([])
     outcome = run_review(runner, document)
 
@@ -491,12 +427,6 @@ def test_an_uncited_claim_says_what_the_search_found(document: Any) -> None:
 
 
 def test_search_selection_does_not_prefer_densely_cited_paragraphs(document: Any) -> None:
-    """Missing work is likeliest where citations are sparse.
-
-    The support pass orders by citation density because that is where a verdict
-    has something to check. Reusing that ordering here would search hardest
-    exactly where there is least to find.
-    """
     searched = paragraphs_worth_searching(document, 8)
     reviewed = _paragraphs_worth_reviewing(document, 8)
 
@@ -506,7 +436,6 @@ def test_search_selection_does_not_prefer_densely_cited_paragraphs(document: Any
 
 
 def test_the_bibliography_index_matches_on_title_when_identifiers_differ(document: Any) -> None:
-    """GROBID recovers a title far more often than an identifier."""
     index = BibliographyIndex.of(document)
     title = next(r.csl.title for r in document.references if r.csl.title)
 
@@ -519,12 +448,6 @@ def test_the_bibliography_index_matches_on_title_when_identifiers_differ(documen
 
 
 def test_the_manuscript_is_never_suggested_to_its_own_author(document: Any) -> None:
-    """A published paper is in the providers' indexes.
-
-    A search on the paper's own topic returns the paper itself, and telling an
-    author to cite their own manuscript is the most obviously wrong suggestion
-    this system could make. Seen on the first live run against OpenAlex.
-    """
     itself = ProviderWork(
         provider=ProviderName.OPENALEX,
         external_id="W_self",

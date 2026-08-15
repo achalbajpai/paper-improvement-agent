@@ -1,5 +1,3 @@
-"""Provider adapters, cache semantics, and request-scoped degradation."""
-
 from __future__ import annotations
 
 import json
@@ -56,11 +54,6 @@ def test_openalex_normalisation_from_live_payload() -> None:
 
 
 def test_openalex_abstract_is_reconstructed_from_the_inverted_index() -> None:
-    """OpenAlex ships no abstract text, only a word-to-positions map.
-
-    The reconstruction is what gets snapshotted, so every evidence span indexes
-    into this string rather than into prose no part of this system ever held.
-    """
     work = OpenAlexClient.to_work(fixture("openalex_by_doi"))
     assert work.has_abstract
     assert work.abstract is not None
@@ -85,7 +78,6 @@ def test_inverted_index_reconstruction_orders_by_position() -> None:
     ],
 )
 def test_doi_normalisation_collapses_every_shape(raw: str) -> None:
-    """DOIs are matched by equality downstream, so one shape has to win."""
     assert normalise_doi(raw) == "10.1145/3292500.3330701"
 
 
@@ -107,13 +99,6 @@ def test_semantic_scholar_normalisation_from_live_payload() -> None:
 
 
 def test_the_two_providers_disagree_about_this_work_s_title() -> None:
-    """A live discrepancy, recorded rather than smoothed over.
-
-    OpenAlex holds this paper's title as ``Optuna``; Semantic Scholar holds the
-    full subtitle. Title similarity would score that pair below threshold, which
-    is exactly why the ladder reaches for identifiers first and treats a bare
-    title match as uncertain.
-    """
     openalex = OpenAlexClient.to_work(fixture("openalex_by_doi"))
     s2 = SemanticScholarClient.to_work(fixture("s2_by_doi"))
 
@@ -123,7 +108,6 @@ def test_the_two_providers_disagree_about_this_work_s_title() -> None:
 
 
 def test_both_providers_produce_the_same_identity_key_for_one_work() -> None:
-    """Deduplication depends on this: a DOI is a DOI whoever reported it."""
     openalex = OpenAlexClient.to_work(fixture("openalex_by_doi"))
     s2 = SemanticScholarClient.to_work(fixture("s2_by_doi"))
     assert openalex.identity_keys()[0] == s2.identity_keys()[0]
@@ -149,7 +133,6 @@ def test_provider_work_becomes_a_csl_item_whose_id_matches_the_reference() -> No
 
 
 def test_a_work_without_a_year_is_not_complete_enough_to_insert() -> None:
-    """Inserting a citation is a stronger act than preserving one."""
     bare = ProviderWork(
         provider=ProviderName.OPENALEX, external_id="W1", title="A paper", authors=("Ada",)
     )
@@ -170,13 +153,6 @@ def test_cache_is_case_insensitive_on_the_argument() -> None:
 
 
 def test_cache_exposes_no_way_to_store_a_failure() -> None:
-    """A 429 says nothing about the work being looked up.
-
-    Caching one would convert a momentary rate limit into hours of confidently
-    reported absence, which is the confusion this whole taxonomy exists to
-    prevent. The guarantee is structural: ``put`` takes a value and an
-    ``empty`` flag, and there is no third state for callers to reach for.
-    """
     code = ProviderCache.put.__code__
     names = code.co_varnames[: code.co_argcount + code.co_kwonlyargcount]
     assert set(names) == {"self", "key", "value", "empty"}
@@ -200,8 +176,6 @@ def test_degradation_is_sticky_for_the_rest_of_the_operation() -> None:
 
 
 def test_the_first_degradation_wins() -> None:
-    """A provider that rate-limited and then timed out is still the provider
-    that stopped answering; the researcher is told the first reason."""
     session = make_session()
     session.degrade(
         ProviderName.SEMANTIC_SCHOLAR, ProviderRateLimitedError("limited", provider="S2")
@@ -234,11 +208,6 @@ def test_the_call_budget_is_enforced_rather_than_advisory(monkeypatch: Any) -> N
 
 
 def test_http_attempts_cannot_overrun_the_reserved_operation_budget(monkeypatch: Any) -> None:
-    """A transport retry is still a real provider request.
-
-    Reporting two attempts after the fact is insufficient if the configured
-    maximum was one: the second request must never leave the process.
-    """
     settings = get_settings()
     monkeypatch.setattr(settings, "max_provider_calls_per_operation", 1)
     session = make_session()
@@ -317,21 +286,10 @@ def test_attempts_are_recorded_for_the_paper_scoped_log() -> None:
     ],
 )
 def test_a_title_is_stripped_of_openalex_filter_syntax(title: str, expected: str) -> None:
-    """A comma separates filters and a colon separates key from value.
-
-    Sent raw, a title carrying either is not a search term but a malformed
-    filter expression, and OpenAlex answers 400. Because a failed call degrades
-    the provider for the whole operation, one such reference disabled OpenAlex
-    for every later query in that review -- including the missing-work search,
-    which then reported finding nothing.
-    """
     assert _filter_safe(title) == expected
 
 
 def test_the_cache_key_distinguishes_result_counts() -> None:
-    """A search for ten results must not be served the three an earlier,
-    narrower call stored: the shortfall would read as the provider having
-    nothing more to offer."""
     narrow = ProviderCache.key("OPENALEX", "SEARCH_CANDIDATES", "residual learning", "3")
     wide = ProviderCache.key("OPENALEX", "SEARCH_CANDIDATES", "residual learning", "10")
 
@@ -339,8 +297,6 @@ def test_the_cache_key_distinguishes_result_counts() -> None:
 
 
 class _Limited(LLMClient):
-    """Answers 429 a fixed number of times, then succeeds."""
-
     def __init__(self, retry_after: str | None, refusals: int = 1, **kwargs: object) -> None:
         super().__init__(api_key="stub", model="stub")
         self.retry_after = retry_after
@@ -357,11 +313,6 @@ class _Limited(LLMClient):
 
 
 def test_a_rate_limit_is_waited_out_once_and_then_succeeds(monkeypatch: Any) -> None:
-    """A 429 is an instruction to wait, not an outage.
-
-    Failing the operation instead loses one that would have succeeded a second
-    later, which on a free-tier model is most of them.
-    """
     slept: list[float] = []
     monkeypatch.setattr("app.providers.llm.time.sleep", slept.append)
 
@@ -375,7 +326,6 @@ def test_a_rate_limit_is_waited_out_once_and_then_succeeds(monkeypatch: Any) -> 
 
 
 def test_a_rate_limit_is_not_waited_out_beyond_the_budget(monkeypatch: Any) -> None:
-    """The caller's deadline decides whether the wait is affordable at all."""
     monkeypatch.setattr("app.providers.llm.time.sleep", lambda _: None)
 
     client = _Limited("20")
@@ -388,12 +338,6 @@ def test_a_rate_limit_is_not_waited_out_beyond_the_budget(monkeypatch: Any) -> N
 
 
 def test_a_rate_limit_without_a_retry_after_is_reported_not_slept_on() -> None:
-    """A 429 carrying no Retry-After may never pass.
-
-    An exhausted quota or a depleted balance answers 429 for ever. Waiting the
-    cap on each of a review's seventy calls would spend the entire deadline
-    asleep before reporting a failure the first response already stated.
-    """
     client = _Limited(None)
     prompt = Prompt(name="support", version="t", system="s", user="u")
 
@@ -404,11 +348,6 @@ def test_a_rate_limit_without_a_retry_after_is_reported_not_slept_on() -> None:
 
 
 def test_repeated_rate_limits_are_waited_out_within_the_cap(monkeypatch: Any) -> None:
-    """A free tier refuses repeatedly under a burst.
-
-    The second refusal is no more permanent than the first, so stopping after
-    one wait is an arbitrary place to give up.
-    """
     monkeypatch.setattr("app.providers.llm.time.sleep", lambda _: None)
 
     client = _Limited("1", refusals=3)
@@ -422,7 +361,6 @@ def test_repeated_rate_limits_are_waited_out_within_the_cap(monkeypatch: Any) ->
 def test_a_provider_that_always_refuses_cannot_hold_the_operation_open(
     monkeypatch: Any,
 ) -> None:
-    """The cap is what makes this a budget rather than a retry loop."""
     monkeypatch.setattr("app.providers.llm.time.sleep", lambda _: None)
 
     client = _Limited("1", refusals=99)
@@ -435,8 +373,6 @@ def test_a_provider_that_always_refuses_cannot_hold_the_operation_open(
 
 
 class _Always429:
-    """A provider that only ever rate-limits. Patched in at the transport."""
-
     status_code = 429
     headers = {"Retry-After": "1"}
     text = "rate limited"
@@ -447,15 +383,6 @@ class _Always429:
 
 
 def test_every_http_attempt_consumes_the_call_budget(monkeypatch: Any) -> None:
-    """The budget names billable requests, not logical prompts.
-
-    One ``complete_structured`` can issue several: retries after a rate limit,
-    a schema repair, then the same again on a fallback. Counting once per
-    prompt would advertise a limit unrelated to what is actually spent.
-
-    Patched at the transport rather than at ``_send``, so what is measured is
-    the real reservation the real code makes.
-    """
     posts: list[int] = []
     monkeypatch.setattr("app.providers.llm.time.sleep", lambda _: None)
     monkeypatch.setattr(get_settings(), "llm_max_calls_per_operation", 3)
@@ -474,7 +401,6 @@ def test_every_http_attempt_consumes_the_call_budget(monkeypatch: Any) -> None:
 
 
 def test_the_repair_attempt_also_consumes_budget(monkeypatch: Any) -> None:
-    """A schema repair is a second billable request, and is counted as one."""
     monkeypatch.setattr(get_settings(), "llm_max_calls_per_operation", 1)
     sent: list[int] = []
 
@@ -560,17 +486,10 @@ def test_openai_luna_is_bounded_and_uses_no_reasoning_tokens(monkeypatch: Any) -
 def test_arxiv_ids_are_normalised_to_the_form_their_doi_uses(
     raw: str | None, expected: str | None
 ) -> None:
-    """arXiv mints one DOI per submission, not one per revision."""
     assert normalise_arxiv(raw) == expected
 
 
 def test_an_arxiv_lookup_asks_for_the_registered_doi(monkeypatch: Any) -> None:
-    """The previous filter could not match anything OpenAlex holds.
-
-    ``ids.openalex:null,locations.landing_page_url:<bare id>`` fails on both
-    halves, so every arXiv-only reference failed this rung of the ladder no
-    matter what the provider actually had.
-    """
     asked: list[str] = []
     client = OpenAlexClient()
     monkeypatch.setattr(client, "_get", lambda url, **kw: (asked.append(url), _ARXIV_PAYLOAD)[1])
@@ -594,12 +513,6 @@ def test_a_malformed_arxiv_id_never_reaches_the_provider(monkeypatch: Any) -> No
 def test_an_absent_arxiv_work_is_a_miss_the_ladder_can_fall_through(
     monkeypatch: Any,
 ) -> None:
-    """Not every arXiv paper carries a registered DOI OpenAlex indexes.
-
-    Verified live: 1512.03385 and 2005.14165 resolve, 1706.03762 does not. A
-    miss must stay a miss so the resolver tries Semantic Scholar or the
-    metadata rung, rather than being reported as an outage.
-    """
     client = OpenAlexClient()
 
     def missing(*args: Any, **kwargs: Any) -> Any:
@@ -617,27 +530,11 @@ def test_an_absent_arxiv_work_is_a_miss_the_ladder_can_fall_through(
     ids=["openalex", "semantic-scholar"],
 )
 def test_a_record_with_no_identifier_is_refused_not_emptied(client: Any) -> None:
-    """An identity-less work is worse than no work at all.
-
-    This test previously asserted the opposite -- that a payload of
-    ``{"unexpected": "shape"}`` became a work with an empty title -- and called
-    that "typed". It is not. The resulting record's identity key is the bare
-    provider prefix, which every other malformed response also produces, so the
-    snapshot store folds them into one row; and because the caller asked by
-    DOI, the resolver marks it CERTAIN. A confident match to a paper that does
-    not exist is the same class of error as a fabricated verdict.
-    """
     with pytest.raises(ProviderInvalidResponseError):
         client.to_work({"unexpected": "shape"})
 
 
 def test_a_doi_lookup_that_answers_with_another_work_is_refused(monkeypatch: Any) -> None:
-    """Exactness is the reason this rung is recorded as CERTAIN.
-
-    That confidence comes from the question asked, so an answer carrying a
-    different identifier would attach it to the wrong paper. Redirects and
-    merges are the provider's business and happen without notice.
-    """
     client = OpenAlexClient()
     monkeypatch.setattr(
         client,
@@ -667,7 +564,6 @@ def test_an_arxiv_lookup_that_answers_with_another_preprint_is_refused(
 
 
 def test_the_requested_work_is_returned_unchanged(monkeypatch: Any) -> None:
-    """The check must not reject the answer it asked for."""
     client = OpenAlexClient()
     monkeypatch.setattr(client, "_get", lambda *a, **k: _ARXIV_PAYLOAD)
 
@@ -721,11 +617,6 @@ _ARXIV_PAYLOAD: dict[str, Any] = {
 
 
 def test_a_budget_exhaustion_is_not_re_reported_as_a_provider_outage() -> None:
-    """Our own limit and the provider's refusal are different facts.
-
-    Only one of them is about the provider, and the coverage note a researcher
-    reads to judge a run is exactly where the difference matters.
-    """
     session = ProviderSession(operation_id="op_test")
     session.degrade(
         ProviderName.OPENALEX,
@@ -748,12 +639,6 @@ def test_a_rate_limited_provider_still_reports_a_rate_limit() -> None:
 
 
 def test_a_retried_request_costs_the_operation_two_calls(monkeypatch: Any) -> None:
-    """Reservation and cost are different numbers.
-
-    ``claim_call`` reserves permission once per logical call, but the transport
-    retries a rate-limited request, so counting only reservations makes both the
-    budget and the reported ``provider_calls`` understate what was sent.
-    """
     monkeypatch.setattr("app.providers.http.time.sleep", lambda _: None)
     session = ProviderSession(operation_id="op_test")
 
@@ -799,23 +684,10 @@ def test_a_retried_request_costs_the_operation_two_calls(monkeypatch: Any) -> No
     ],
 )
 def test_only_the_syntax_openalex_refuses_is_stripped(title: str, expected: str) -> None:
-    """`?` and `*` are Lucene wildcards and produce a 400; the rest do not.
-
-    A real paper title -- `Can active memory replace attention?` -- returned 400
-    from `title.search`, and because every provider failure degraded the
-    provider for the whole operation, that one reference cost OpenAlex coverage
-    for the rest of the review.
-    """
     assert _filter_safe(title) == expected
 
 
 def test_a_rejected_query_does_not_say_the_provider_is_unhealthy() -> None:
-    """Whose fault the status is decides whether coverage should stop.
-
-    A 400 is our malformed query; the next query is unaffected. Degrading on it
-    both loses the remaining coverage and reports our own bug to the researcher
-    as the provider being unavailable.
-    """
     assert not ProviderQueryRejectedError("malformed", provider="OPENALEX").degrades_provider
     assert ProviderRateLimitedError("429", provider="OPENALEX").degrades_provider
     assert ProviderUnavailableError("500", provider="OPENALEX").degrades_provider
@@ -823,11 +695,6 @@ def test_a_rejected_query_does_not_say_the_provider_is_unhealthy() -> None:
 
 
 def test_one_rejected_query_does_not_end_the_provider_s_coverage(monkeypatch: Any) -> None:
-    """The point of the distinction, exercised where degradation actually happens.
-
-    A malformed query must leave the provider usable for the rest of the
-    operation; a rate limit must not.
-    """
 
     def service_raising(error: Exception) -> tuple[AcademicRetrievalService, ProviderSession]:
         session = ProviderSession(operation_id="op_test")

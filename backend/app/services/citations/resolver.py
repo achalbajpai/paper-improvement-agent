@@ -1,19 +1,3 @@
-"""The resolution ladder: from a parsed reference to a provider record.
-
-Confidence is computed from observable evidence and nothing else. An identifier
-match is ``CERTAIN`` because two works sharing a DOI are the same work. A title
-match corroborated by an author surname or the year is ``PROBABLE``. A bare title
-match is ``UNCERTAIN``, and ``UNCERTAIN`` is treated downstream as unresolved --
-it yields ``SOURCE_IDENTITY_UNCERTAIN`` rather than a support verdict, because a
-verdict issued against a paper we merely suspect is the cited one is worse than
-admitting we do not know which paper it is.
-
-The ladder stops at the first rung that produces a match. It does not keep
-climbing to "improve" a DOI hit with a title search: nothing a fuzzy search
-returns can outrank an exact identifier, and the extra call spends budget the
-abstract fetches need.
-"""
-
 from __future__ import annotations
 
 import re
@@ -47,8 +31,6 @@ ProviderClient = OpenAlexClient | SemanticScholarClient
 
 @dataclass(frozen=True)
 class Resolution:
-    """What resolution concluded about one reference."""
-
     method: ResolutionMethod
     confidence: ResolutionConfidence
     work: ProviderWork | None = None
@@ -66,8 +48,6 @@ class Resolution:
 
 
 class ReferenceResolver:
-    """Resolves references against both providers, sharing one session."""
-
     def __init__(
         self,
         session: ProviderSession,
@@ -102,11 +82,6 @@ class ReferenceResolver:
         return self._by_metadata(title, reference, deadline)
 
     def _by_identifier(self, kind: str, value: str, deadline: Deadline) -> ProviderWork | None:
-        """Look one identifier up at each provider until one answers.
-
-        Both are tried because either can be missing a work the other has, and an
-        identifier lookup is a single cheap call with an unambiguous answer.
-        """
         for provider in (ProviderName.OPENALEX, ProviderName.SEMANTIC_SCHOLAR):
             work = self._fetch_one(provider, kind, value, deadline)
             if work is not None:
@@ -160,12 +135,6 @@ class ReferenceResolver:
         return Resolution(ResolutionMethod.TITLE_ONLY, ResolutionConfidence.UNCERTAIN, best)
 
     def fetch_abstract(self, work: ProviderWork, deadline: Deadline) -> ProviderWork:
-        """Return a work carrying an abstract, if either provider has one.
-
-        OpenAlex hits usually arrive with a reconstructable abstract already.
-        When they do not, Semantic Scholar is asked by DOI, since it returns
-        plain abstract text.
-        """
         if work.has_abstract or not work.doi:
             return work
         found = self._fetch_one(ProviderName.SEMANTIC_SCHOLAR, "doi", work.doi, deadline)
@@ -184,12 +153,6 @@ class ReferenceResolver:
         deadline: Deadline,
         action: Callable[[ProviderClient, float], T],
     ) -> T | None:
-        """One provider call with cache, budget, degradation, and attempt logging.
-
-        A not-found is an answer: it is recorded and cached. Any other provider
-        failure degrades the provider for the rest of the operation and is never
-        cached, because a rate limit says nothing about the work being looked up.
-        """
         if self.session.is_degraded(provider) or deadline.expired:
             return None
 
@@ -244,7 +207,7 @@ class ReferenceResolver:
 
 
 class _Missing:
-    """Cached marker for "the provider answered, and had nothing"."""
+    pass
 
 
 _MISSING = _Missing()
@@ -255,7 +218,6 @@ def _provider_timeout() -> float:
 
 
 def title_key(title: str) -> frozenset[str]:
-    """Content words of a title, for similarity comparison."""
     folded = unicodedata.normalize("NFKD", title).casefold()
     return frozenset(word for word in re.findall(r"[a-z0-9]+", folded) if word not in _STOPWORDS)
 

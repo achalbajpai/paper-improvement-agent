@@ -1,5 +1,3 @@
-"""The HTTP boundary has one honest error shape and an accurate schema."""
-
 from __future__ import annotations
 
 import json

@@ -1,18 +1,3 @@
-"""Citation-style detection.
-
-Detection **suggests**; the researcher decides through
-``PATCH /papers/{id}/citation-style``. That split is deliberate. A paper's markers
-narrow the family to numeric or author-year, but they do not identify the style:
-IEEE, Vancouver, and Nature all print bracketed numerals, and APA, Chicago
-author-date, and Harvard all print author-year. Silently exporting in the wrong
-one of those would reformat every entry in the author's bibliography.
-
-So this returns the best-supported of the two vendored styles together with an
-honest confidence, and the UI asks.
-
-Pure: reads a parsed document, does no I/O.
-"""
-
 from __future__ import annotations
 
 import re

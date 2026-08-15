@@ -1,24 +1,3 @@
-"""Building the proposed document.
-
-This is the only module that constructs an edited ``Document``. Everything else
-either produces text (the rewriter), inspects the result (the DeltaEngine), or
-decides about it (verification). Concentrating mutation here is what makes "no
-edit is ever half-applied" a structural fact rather than a discipline: an edit
-either yields a complete new document or raises, and there is no intermediate
-state for a failure to leave behind.
-
-Two rules hold for every builder method:
-
-* **Paragraph identity is preserved.** A rewritten paragraph keeps its id, so
-  every anchor, finding, and delta that referred to it still refers to it.
-* **Citations are re-attached by identity, never by position.** The rewritten
-  text carries tokens; inlines are rebuilt by splitting on those tokens, so a
-  citation lands where the model actually put it rather than where a character
-  offset suggests.
-
-Pure: no I/O, no network, no database.
-"""
-
 from __future__ import annotations
 
 from app.domain.citation import CitationNode
@@ -37,13 +16,6 @@ from app.services.parser.segmenter import TOKEN_PATTERN
 
 
 class CandidateRevisionBuilder:
-    """Accumulates edits, then produces one new document.
-
-    Nothing is applied until ``build`` is called, so a failure part-way through a
-    multi-paragraph edit leaves the base document untouched. That is what makes
-    proposal construction all-or-nothing across paragraphs.
-    """
-
     def __init__(self, base: Document) -> None:
         self.base = base
         self._paragraphs: dict[str, tuple[InlineNode, ...]] = {}
@@ -51,7 +23,6 @@ class CandidateRevisionBuilder:
         self._references: list[ReferenceRecord] = []
 
     def replace_paragraph(self, paragraph_id: str, tokenised_text: str) -> None:
-        """Stage a rewritten paragraph, given its tokenised text."""
         paragraph = self.base.paragraph(paragraph_id)
         if paragraph is None:
             raise CandidateConstructionError(
@@ -63,7 +34,6 @@ class CandidateRevisionBuilder:
         )
 
     def add_citation(self, node: CitationNode) -> None:
-        """Register a new occurrence. It must also be placed in a paragraph."""
         if node.id in self.base.citations or node.id in self._citations:
             raise CandidateConstructionError(
                 "A citation occurrence with this id already exists.", citation_id=node.id
@@ -71,13 +41,6 @@ class CandidateRevisionBuilder:
         self._citations[node.id] = node
 
     def replace_citation(self, node: CitationNode) -> None:
-        """Stage a changed occurrence, leaving its position in the prose alone.
-
-        Used when an added citation joins a bracket that is already in the
-        sentence: the paragraph's text is untouched and only the occurrence's
-        item list grows, which is how ``[3]`` becomes ``[3, 7]`` instead of
-        ``[3][7]``.
-        """
         if node.id not in self.base.citations:
             raise CandidateConstructionError(
                 "The edit replaced a citation occurrence that is not in this document.",
@@ -93,12 +56,6 @@ class CandidateRevisionBuilder:
         self._references.append(record)
 
     def build(self) -> Document:
-        """Produce the candidate document.
-
-        Sections and blocks are rebuilt structurally rather than copied wholesale,
-        so a paragraph's position in its section, and every preserved block around
-        it, survive an edit by construction.
-        """
         if not self._paragraphs and not self._citations and not self._references:
             raise CandidateConstructionError("The edit produced no changes to apply.")
 
@@ -153,14 +110,6 @@ class CandidateRevisionBuilder:
 
 
 def inlines_from_tokenised(text: str, *, known: frozenset[str]) -> tuple[InlineNode, ...]:
-    """Rebuild a paragraph's inline nodes from tokenised text.
-
-    Splitting on the token pattern is what re-attaches citations by identity. An
-    unknown token raises rather than being emitted: a ``CitationRef`` pointing at
-    a registry entry that does not exist would render as nothing at export, and
-    a citation that silently disappears at render time is the worst available
-    outcome.
-    """
     inlines: list[InlineNode] = []
     cursor = 0
     for match in TOKEN_PATTERN.finditer(text):

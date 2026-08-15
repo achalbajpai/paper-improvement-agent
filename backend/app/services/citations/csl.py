@@ -1,18 +1,3 @@
-"""``biblStruct`` to canonical CSL-JSON.
-
-Every reference gets a valid CSL item, including one GROBID could not parse:
-that becomes ``type: "document"`` carrying the raw string in ``custom``. The
-alternative -- an optional CSL field -- pushes an ``if csl is None`` branch into
-the exporter, the resolver, the reviewer, and the UI, and the one that gets
-forgotten silently drops a bibliography entry from the author's paper.
-
-Raw text goes in ``custom``, never in ``note``: several CSL styles render
-``note``, so parking unparsed text there would print parser debris into a
-formatted bibliography.
-
-Pure: operates on an already-parsed element tree, does no I/O.
-"""
-
 from __future__ import annotations
 
 import re
@@ -44,7 +29,6 @@ def raw_reference_text(entry: etree._Element) -> str:
 
 
 def to_csl(entry: etree._Element, reference_id: str) -> tuple[CSLItem, NormalizationStatus]:
-    """Convert one bibliography entry, always returning a usable CSL item."""
     raw = raw_reference_text(entry)
 
     analytic = entry.find("tei:analytic", namespaces=NS)

@@ -1,11 +1,3 @@
-"""CSL normalisation, including the entries GROBID could not parse.
-
-The invariant under test is that ``ReferenceRecord.csl`` is never absent. An
-optional CSL field would push an ``if csl is None`` branch into the exporter, the
-resolver, the reviewer, and the UI, and the branch that gets forgotten silently
-drops a bibliography entry from the author's paper.
-"""
-
 from __future__ import annotations
 
 from lxml import etree
@@ -50,7 +42,6 @@ def test_journal_article_maps_to_article_journal() -> None:
 
 
 def test_corporate_author_becomes_a_literal_name() -> None:
-    """Reports and consortium papers legitimately have no personal author."""
     item, _ = to_csl(
         bibl(
             "<monogr><title level='m'>World report</title>"
@@ -74,7 +65,6 @@ def test_unparseable_entry_is_still_a_valid_csl_item() -> None:
 
 
 def test_raw_text_lives_in_custom_never_in_note() -> None:
-    """Several CSL styles render ``note``. Debris must not print."""
     item = csl_for_unparseable("ref_imported_004", "unparseable")
     dumped = item.model_dump()
     assert dumped["custom"][RAW_TEXT_KEY] == "unparseable"
@@ -94,7 +84,6 @@ def test_doi_is_stored_bare() -> None:
 
 
 def test_arxiv_id_is_kept_out_of_the_rendered_fields() -> None:
-    """It is an identifier we resolve with, not something a style should print."""
     item, _ = to_csl(
         bibl(
             "<monogr><title level='m'>Layer normalization</title>"
@@ -108,11 +97,6 @@ def test_arxiv_id_is_kept_out_of_the_rendered_fields() -> None:
 
 
 def test_insertion_completeness_is_stricter_than_preservation() -> None:
-    """A reference the author chose is kept whatever its quality.
-
-    A reference *this system introduces* must be complete enough that a reader
-    can find the work, which is a different and higher bar.
-    """
     incomplete, _ = to_csl(
         bibl("<analytic><title level='a'>Title only</title></analytic>"),
         "ref_imported_007",
@@ -121,11 +105,6 @@ def test_insertion_completeness_is_stricter_than_preservation() -> None:
 
 
 def test_corpus_references_are_mostly_complete() -> None:
-    """A sanity floor on real data, not an invented pass threshold.
-
-    Three papers cannot support a meaningful accuracy target; this only catches a
-    regression that breaks normalisation wholesale.
-    """
     for name in CORPUS:
         references = mapped(name).document.references
         complete = sum(

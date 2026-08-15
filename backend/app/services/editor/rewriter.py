@@ -1,15 +1,3 @@
-"""Paragraph rewriting: one LLM call, one schema, one versioned prompt.
-
-Scope is one paragraph in, one paragraph out. There is no unconstrained section
-rewrite and no implicit merge or split, because a model that can restructure a
-section can silently drop a paragraph, and paragraph identity is what every
-anchor, finding, and delta depends on.
-
-Citations reach the model only as protected tokens (``[[CITE:cite_012]]``),
-never as the mutable rendered label ``[12]``. Preserved blocks are never
-serialised into a prompt at all.
-"""
-
 from __future__ import annotations
 
 from pydantic import BaseModel, Field

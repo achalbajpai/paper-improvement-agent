@@ -1,9 +1,3 @@
-"""Checks that the document still has the shape it started with.
-
-Sections, paragraphs, preserved blocks, and the bibliography. Nothing here is a
-judgement call: a section that vanished is a fact, and every finding is a
-blocker rather than something the researcher can accept."""
-
 from __future__ import annotations
 
 from app.domain.verification import (
@@ -17,11 +11,6 @@ from app.services.editor.verification.inputs import VerificationInputs, _Accumul
 
 
 def _check_structure(inputs: VerificationInputs, state: _Accumulator) -> None:
-    """Structural integrity, computed from the two documents.
-
-    None of this trusts the editing code's account of what it did: the candidate
-    is inspected as a document, exactly as it would be at export.
-    """
     problems: list[str] = []
     candidate = inputs.candidate
 
@@ -73,11 +62,6 @@ def _check_structure(inputs: VerificationInputs, state: _Accumulator) -> None:
 
 
 def _check_blocks(inputs: VerificationInputs, state: _Accumulator) -> None:
-    """Tables, figures, and equations are carried, never edited.
-
-    They are preserved verbatim precisely because this system cannot understand
-    them well enough to change them safely.
-    """
     mutated = inputs.delta.touches_blocks or inputs.base.blocks != inputs.candidate.blocks
     if mutated:
         state.blockers.append(
@@ -98,14 +82,6 @@ def _check_blocks(inputs: VerificationInputs, state: _Accumulator) -> None:
 def _check_new_references(
     inputs: VerificationInputs, state: _Accumulator, content_hash: str
 ) -> None:
-    """New bibliography entries must be complete enough for a reader to use them.
-
-    The other invariant on a new reference -- ``csl.id == id``, whose violation
-    makes citeproc drop the bibliography entry while the citation still renders --
-    is enforced by ``ReferenceRecord`` itself, at construction and at every load
-    from stored JSON. Re-checking it here would imply it is reachable, and would
-    be one more place to keep in step with the model.
-    """
     existing = {reference.id for reference in inputs.base.references}
     added = [reference for reference in inputs.candidate.references if reference.id not in existing]
 

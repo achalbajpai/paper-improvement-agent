@@ -1,5 +1,3 @@
-"""HTTP translation for editing proposals and their acceptance."""
-
 from __future__ import annotations
 
 from fastapi import APIRouter, Response
@@ -137,12 +135,6 @@ def reject(
     response: Response,
     proposal_id: str,
 ) -> ProposalOut:
-    """Rejection is a state transition, and it is claimed like every other one.
-
-    Without a claim, a lost response followed by the client's retry answers
-    with a state conflict rather than replaying the success it never saw --
-    which reads to the researcher as though the rejection failed.
-    """
     outcome = repositories.begin_operation(
         session,
         scope_type="proposal",

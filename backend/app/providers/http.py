@@ -1,18 +1,3 @@
-"""Shared HTTP behaviour for the scholarly providers.
-
-Both adapters speak real HTTP at runtime. Fixtures exist to make tests
-deterministic, never to stand in for a provider the system has not actually
-integrated with.
-
-Two observed provider behaviors are encoded here, because guessing either one
-wrong is invisible until it matters:
-
-* Semantic Scholar returns ``429`` with a JSON body and **no** ``Retry-After``
-  header, so backoff cannot be negotiated and must be a fixed, bounded wait.
-* OpenAlex returns its ``404`` as ``text/html``, so a not-found is detected from
-  the status code and never from parsing the body as JSON.
-"""
-
 from __future__ import annotations
 
 import time
@@ -37,19 +22,11 @@ USER_AGENT = "answerthis-paper-agent/0.1 (+https://github.com/answerthis)"
 
 @dataclass
 class RequestPacer:
-    """Process-wide minimum spacing between calls made with one provider quota.
-
-    Operation budgets cap total work; this pacer caps request frequency. The
-    lock deliberately covers the wait and reservation so concurrent reviews
-    cannot all observe the same free slot and burst through an account limit.
-    """
-
     _next_request_at: dict[str, float] = field(default_factory=dict)
     _quota_locks: dict[str, Lock] = field(default_factory=dict)
     _registry_lock: Lock = field(default_factory=Lock)
 
     def acquire(self, quota: str, *, min_interval: float, timeout: float) -> float:
-        """Reserve the next slot and return the HTTP time still available."""
         if min_interval <= 0:
             return timeout
         with self._quota_lock(quota):
@@ -68,7 +45,6 @@ class RequestPacer:
             return max(0.001, timeout - wait)
 
     def _quota_lock(self, quota: str) -> Lock:
-        """One lock per account quota, created under a short registry lock."""
         with self._registry_lock:
             return self._quota_locks.setdefault(quota, Lock())
 
@@ -88,18 +64,6 @@ def request_json(
     min_interval_seconds: float = 0.0,
     on_attempt: Callable[[], None] | None = None,
 ) -> dict[str, Any]:
-    """One provider call, returning parsed JSON or raising a typed provider error.
-
-    ``retry_on_rate_limit`` permits exactly one bounded retry. There is no
-    exponential backoff and no third attempt: the caller's session marks the
-    provider degraded after this, which is a better answer than spending the
-    operation's remaining budget waiting.
-
-    ``on_attempt`` fires once per outbound request, here at the transport rather
-    than once per logical call at the caller. A retried call makes two requests,
-    and an operation's provider budget and reported call count are both claims
-    about requests actually sent.
-    """
     attempts = 2 if retry_on_rate_limit else 1
     last_rate_limit: ProviderRateLimitedError | None = None
     deadline = time.monotonic() + timeout
@@ -199,12 +163,6 @@ def _decode(response: httpx.Response, provider: str) -> dict[str, Any]:
 
 
 def _retry_after(response: httpx.Response) -> float:
-    """How long to wait, capped.
-
-    Semantic Scholar sends no ``Retry-After``, so the cap is usually also the
-    value. It is capped either way: a provider asking for a two-minute wait is
-    asking for more than an interactive operation has.
-    """
     cap = get_settings().s2_max_retry_after_seconds
     raw = response.headers.get("Retry-After", "")
     try:

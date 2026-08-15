@@ -1,10 +1,3 @@
-"""Engine, session factory, and schema creation.
-
-There is no Alembic. The schema is created with ``create_all`` and evolved by
-recreating the volume (``make clean``); a 48-hour single-user tool does not earn
-a migration history, and pretending otherwise would be scaffolding nobody runs.
-"""
-
 from __future__ import annotations
 
 import importlib
@@ -37,7 +30,6 @@ def get_session_factory() -> sessionmaker[Session]:
 
 @contextmanager
 def session_scope() -> Iterator[Session]:
-    """A transactional scope. No external call may be made inside one."""
     session = get_session_factory()()
     try:
         yield session
@@ -56,14 +48,6 @@ def init_db() -> None:
 
 
 def _apply_post_create_constraints() -> None:
-    """Constraints SQLAlchemy's schema DDL cannot express directly.
-
-    ``UNIQUE NULLS NOT DISTINCT`` is load-bearing rather than decorative: a plain
-    UNIQUE treats every NULL as distinct, so global-scope upload rows (which have
-    ``scope_id IS NULL``) would never collide and the constraint would permit
-    unlimited duplicate uploads, defeating idempotency on the one endpoint it was
-    introduced for. PostgreSQL 15+ supports the clause and the stack pins 16.
-    """
     statements_by_table = {
         "operation_requests": (
             """

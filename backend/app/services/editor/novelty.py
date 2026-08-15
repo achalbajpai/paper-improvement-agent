@@ -1,22 +1,3 @@
-"""Semantic novelty: one LLM call, one schema, one versioned prompt.
-
-Protected tokens cannot see this failure. A shortening model can invent a fact
-without touching a citation token at all:
-
-    before  "The approach may reduce latency."
-    after   "The approach reduces latency by 30%."
-
-Tokens intact, DeltaEngine clean, manuscript now false. So every factual
-assertion in a candidate paragraph must be entailed by the original or carry a
-verified citation added by the same proposal. Unsupported novelty blocks --
-always.
-
-If the model-safety go/no-go fixture shows this validator is unreliable,
-SHORTEN_SECTION degrades to extractive-only rather than this invariant weakening
-to a warning. Reducing rewrite flexibility is safe; permitting an uncited
-invented claim is not.
-"""
-
 from __future__ import annotations
 
 from pydantic import BaseModel, Field

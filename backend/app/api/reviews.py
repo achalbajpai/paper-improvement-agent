@@ -1,5 +1,3 @@
-"""HTTP translation for review runs."""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -65,10 +63,6 @@ def get_review(session: SessionDep, run_id: str) -> ReviewRunOut:
 
 @router.patch("/findings/{finding_id}", response_model=FindingOut)
 def handle_finding(session: SessionDep, finding_id: str, body: HandleFindingRequest) -> FindingOut:
-    """Mark one finding as dealt with, or put it back.
-
-    The finding stays in its run and in the run's counts.
-    """
     row = session.get(ReviewFindingRow, finding_id)
     if row is None:
         raise NotFoundError("No such finding.", finding_id=finding_id)

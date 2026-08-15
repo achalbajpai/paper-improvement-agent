@@ -1,10 +1,3 @@
-"""Acceptance: the one operation that moves the paper.
-
-Everything before this is reversible. These tests are about the cases where two
-things happen close together, or where what the researcher agreed to is not what
-would be applied.
-"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -40,7 +33,6 @@ pytestmark = pytest.mark.usefixtures("database")
 
 
 def edited(document: Document) -> tuple[Document, ComputedEditDelta]:
-    """A candidate that really differs from its base: one paragraph shortened."""
     paragraph = next(iter(document.paragraphs()))
     builder = CandidateRevisionBuilder(document)
     text = tokenize(paragraph)
@@ -58,7 +50,6 @@ def stage(
     state: ProposalState = ProposalState.AWAITING_DECISION,
     base_revision_id: str | None = None,
 ) -> EditProposal:
-    """A proposal in the state acceptance expects to find."""
     revision = repositories.get_current_revision(db, paper)
     document = Document.model_validate(revision.document)
     candidate, delta = edited(document)
@@ -109,11 +100,6 @@ def test_acceptance_creates_one_revision_and_moves_the_paper(
 
 
 def test_the_stored_revision_is_the_snapshot_not_a_re_run(db: Session, stored_paper: Paper) -> None:
-    """What the researcher approved is what gets stored.
-
-    Re-running the edit at acceptance would let the decision and the result
-    diverge, which is the entire reason a candidate revision exists.
-    """
     proposal = stage(db, stored_paper)
     snapshot = CandidateRevisionSnapshot.model_validate(proposal.candidate)
 
@@ -135,11 +121,6 @@ def test_an_unacknowledged_warning_stops_acceptance(db: Session, stored_paper: P
 
 
 def test_acknowledging_a_different_warning_does_not_count(db: Session, stored_paper: Paper) -> None:
-    """Warning ids are content-derived, so an acknowledgement cannot be replayed.
-
-    A checkbox ticked against "citation [12] will be removed" must not satisfy a
-    proposal that removes something else.
-    """
     proposal = stage(db, stored_paper, warnings=(a_warning("cite_imported_001"),))
     other = a_warning("cite_imported_099")
 
@@ -160,7 +141,6 @@ def test_acknowledging_the_warning_lets_it_through(db: Session, stored_paper: Pa
 def test_a_blocked_proposal_cannot_be_accepted_however_much_is_acknowledged(
     db: Session, stored_paper: Paper
 ) -> None:
-    """No acknowledgement clears a blocker. That is what makes it a blocker."""
     blocker = VerificationBlocker(
         code=BlockerCode.UNSUPPORTED_NOVELTY,
         message="The shortened text asserts something the original does not.",
@@ -176,7 +156,6 @@ def test_a_blocked_proposal_cannot_be_accepted_however_much_is_acknowledged(
 def test_a_proposal_built_against_an_older_revision_is_refused(
     db: Session, stored_paper: Paper
 ) -> None:
-    """The researcher read it, thought about it, and the paper moved meanwhile."""
     first = stage(db, stored_paper)
     accept_proposal(db, first.id, acknowledged_warning_ids=[])
 
@@ -187,7 +166,6 @@ def test_a_proposal_built_against_an_older_revision_is_refused(
 
 
 def test_accepting_twice_is_refused(db: Session, stored_paper: Paper) -> None:
-    """The database constraint is the real guard; this is the readable error."""
     proposal = stage(db, stored_paper)
     accept_proposal(db, proposal.id, acknowledged_warning_ids=[])
 
@@ -198,12 +176,6 @@ def test_accepting_twice_is_refused(db: Session, stored_paper: Paper) -> None:
 
 
 def test_a_tampered_candidate_is_refused(db: Session, stored_paper: Paper) -> None:
-    """The snapshot hash covers the document, the delta, and the verification.
-
-    Changing any of them without re-verifying makes the stored hash disagree,
-    which is what stops an edited candidate from being applied as though it had
-    been checked.
-    """
     proposal = stage(db, stored_paper)
     candidate: dict[str, Any] = dict(proposal.candidate or {})
     document = dict(candidate["document"])
@@ -217,14 +189,6 @@ def test_a_tampered_candidate_is_refused(db: Session, stored_paper: Paper) -> No
 
 
 def test_accepting_one_proposal_supersedes_the_others(db: Session, stored_paper: Paper) -> None:
-    """They were computed against a document that no longer exists.
-
-    The second is BLOCKED, because that is the co-existence the invariants
-    actually permit: ``uq_one_active_proposal_per_paper`` allows one live
-    proposal per paper, and a blocked one does not hold that slot. It is still
-    a candidate built against the superseded revision, so accepting the first
-    must retire it.
-    """
     first = stage(db, stored_paper)
     second = stage(db, stored_paper, state=ProposalState.BLOCKED)
 
@@ -252,7 +216,6 @@ def test_a_rejected_proposal_cannot_then_be_accepted(db: Session, stored_paper: 
 
 
 def test_the_edit_actually_reaches_the_new_revision(db: Session, stored_paper: Paper) -> None:
-    """A revision that stored the base document would pass every other test here."""
     proposal = stage(db, stored_paper)
     base = Document.model_validate(repositories.get_current_revision(db, stored_paper).document)
 

@@ -1,15 +1,3 @@
-"""Candidate revisions and proposal state.
-
-The Candidate Revision is the mechanism that makes an agentic editor safe to run
-on someone's paper: an edit produces a complete proposed document that is
-verified as a whole and either accepted atomically or discarded. Nothing is ever
-half-applied, because there is no intermediate state to be half-applied *from*.
-
-Everything needed to verify, display, and apply the edit is captured in the
-snapshot. Acceptance re-checks the snapshot's identity rather than recomputing
-the edit, so what the researcher approved is exactly what gets stored.
-"""
-
 from __future__ import annotations
 
 from enum import StrEnum
@@ -56,18 +44,6 @@ class SkippedParagraph(BaseModel):
 
 
 class EditScope(BaseModel):
-    """What the command was resolved to act on, and what it deliberately left alone.
-
-    Derived from the planner, which is arithmetic over the parsed document with
-    no model in it. That makes this answerable before any rewriting happens and
-    identical whether the rewrite then succeeds or fails.
-
-    It exists because "shorten the introduction" is a command whose blast radius
-    the researcher cannot otherwise see until after the fact. A skipped paragraph
-    is as much a part of the answer as a targeted one -- silence about it reads as
-    an oversight rather than the deliberate exclusion it is.
-    """
-
     model_config = ConfigDict(frozen=True)
 
     section_id: str
@@ -85,14 +61,6 @@ class EditScope(BaseModel):
 
 
 class CandidateRevisionSnapshot(BaseModel):
-    """A complete proposed document, with the evidence that it is safe.
-
-    Immutable and self-contained. Acceptance validates ``snapshot_sha256`` and
-    the base revision, then stores ``document`` as the new revision; it never
-    re-runs the edit, so the researcher's decision and the stored result cannot
-    diverge.
-    """
-
     model_config = ConfigDict(frozen=True)
 
     base_revision_id: str
@@ -107,19 +75,6 @@ class CandidateRevisionSnapshot(BaseModel):
     @computed_field
     @property
     def snapshot_sha256(self) -> str:
-        """Identity of everything the researcher was shown.
-
-        Covers the document, the delta, and the verification result together. A
-        proposal regenerated with different warnings is a different snapshot even
-        if the resulting prose is identical, which is what stops an
-        acknowledgement from being carried across.
-
-        ``scope`` is deliberately outside it. It describes which paragraphs the
-        planner selected, and every one of those decisions is already visible in
-        the delta and the document that the hash does cover; hashing a second,
-        derived description of the same edit would only create a way for the two
-        to disagree.
-        """
         return canonical_sha256(
             {
                 "base_revision_id": self.base_revision_id,

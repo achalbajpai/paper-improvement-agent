@@ -1,26 +1,3 @@
-"""The manuscript as Pandoc's own JSON AST.
-
-Built **directly**, never by generating Markdown and letting Pandoc parse it back.
-Markdown cannot carry an occurrence id, and the export contract confirmed that it
-round-trips author-in-text, suppressed authors, and prefix/suffix content poorly.
-Emitting JSON means the citation Pandoc sees is the citation the AST holds, field
-for field, rather than a string that has to survive being re-parsed.
-
-Two wrappers carry identity through the render:
-
-* ``Div`` with the paragraph id, so a rendered paragraph can be traced back.
-* ``Span`` with the occurrence id around each ``Cite``, so a marker in the output
-  is identifiable as a specific occurrence rather than as a bracket that looks
-  like several others.
-
-Locators go out on the *encoded suffix*, because citeproc rewrites them on the
-way through: ``pp. 17-19`` renders as ``pp. 17–19``, ``chap. 3`` as ``Ch. 3`` or
-``Chapter 3`` depending on style. Rendered output is therefore never parsed back,
-and the export equality check compares the encoded input form instead.
-
-Pure: builds a structure, runs nothing.
-"""
-
 from __future__ import annotations
 
 import re
@@ -44,14 +21,6 @@ _MODES_BACK = {pandoc: mode for mode, pandoc in _MODES.items()}
 
 
 def build(document: Document, *, nocite_reference_ids: tuple[str, ...] = ()) -> dict[str, Any]:
-    """The whole manuscript as one Pandoc JSON document.
-
-    ``nocite_reference_ids`` names entries to keep in the bibliography that the
-    text no longer cites. They go into the IR's own metadata as real citation
-    inlines rather than through ``--metadata=nocite:@id``, which sets a plain
-    string that citeproc never parses: measured against this corpus, the flag
-    form retained nothing at all and the entry was missing from the output.
-    """
     blocks: list[dict[str, Any]] = []
 
     for section in document.sections:
@@ -97,12 +66,6 @@ def _meta(document: Document, nocite_reference_ids: tuple[str, ...]) -> dict[str
 
 
 def _nocite(reference_ids: tuple[str, ...]) -> dict[str, Any]:
-    """The retained entries, named one by one.
-
-    Targeted rather than ``@*``: ``@*`` would also retain references this system
-    added and then dropped, which is a different decision the researcher never
-    made.
-    """
     items = [
         {
             "citationId": reference_id,
@@ -145,12 +108,6 @@ def _inlines(paragraph: Paragraph, document: Document) -> list[dict[str, Any]]:
 
 
 def _cite(node: CitationNode) -> dict[str, Any]:
-    """One occurrence, wrapped in a Span carrying its id.
-
-    A ``Cite`` with several ``citations`` is how Pandoc represents ``[2, 5]`` --
-    one bracket, two items -- which is exactly the shape the AST already uses.
-    Emitting two ``Cite`` elements instead would render as ``[2][5]``.
-    """
     items = [
         {
             "citationId": item.reference_id or "",
@@ -171,12 +128,6 @@ def _cite(node: CitationNode) -> dict[str, Any]:
 
 
 def _inlines_from_text(text: str) -> list[dict[str, Any]]:
-    """Words and spaces, as Pandoc represents them.
-
-    ``Str``/``Space``/``SoftBreak`` rather than one long ``Str``: Pandoc's own
-    writers assume that shape, and a single ``Str`` containing spaces produces
-    wrapping that differs from every other paragraph.
-    """
     inlines: list[dict[str, Any]] = []
     for index, line in enumerate(text.split("\n")):
         if index:
@@ -192,12 +143,6 @@ def _inlines_from_text(text: str) -> list[dict[str, Any]]:
 
 
 def _block(block: PreservedBlock) -> list[dict[str, Any]]:
-    """A preserved block, emitted with what the source actually gave us.
-
-    Source-backed assets are rendered as figures. When source content is not
-    available, a stated limitation goes out instead of a plausible-looking
-    reconstruction, because a fabricated equation is worse than a visible gap.
-    """
     body: list[dict[str, Any]] = []
     caption = block.caption or block.label
 
@@ -326,7 +271,6 @@ def _figure(path: str, alt: str) -> dict[str, Any]:
 
 
 def _table(rows: tuple[tuple[str, ...], ...], caption: str | None) -> dict[str, Any]:
-    """Build Pandoc 1.23's native Table AST from rectangular cell data."""
     width = max(len(row) for row in rows)
     normalized = [row + ("",) * (width - len(row)) for row in rows]
 
@@ -363,19 +307,6 @@ def _plain_block(inlines: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def citation_signatures(ir: dict[str, Any]) -> dict[str, list[str]]:
-    """Every occurrence in the IR, as whole-item signatures.
-
-    Compared against the AST's own signatures so that "the document we rendered"
-    and "the document we verified" are provably the same document. Whole items on
-    the encoded form, never a key set: two items agreeing on reference and locator
-    but differing in mode are not the same citation.
-
-    Emitted in ``CitationItem.signature``'s vocabulary rather than Pandoc's, so
-    that function stays the single definition of what a signature is.
-
-    Only the body is walked. The nocite citation lives in the metadata and is a
-    bibliography instruction, not a marker in the manuscript.
-    """
     found: dict[str, list[str]] = {}
     for span_id, cite in _walk_cites(ir.get("blocks", [])):
         found[span_id] = [
@@ -416,12 +347,6 @@ def _walk_cites(node: Any, span_id: str = "") -> list[tuple[str, list[dict[str, 
 
 
 def _plain(inlines: Any) -> str:
-    """Flatten Pandoc inlines back to a string, for comparison only.
-
-    Normalised with the same helper ``CitationItem.signature`` uses, so the two
-    sides of the comparison differ only where the content genuinely differs and
-    not because Pandoc chose ``Space`` where the AST had a literal space.
-    """
     if not isinstance(inlines, list):
         return ""
     parts: list[str] = []

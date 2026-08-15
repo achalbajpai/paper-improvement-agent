@@ -1,11 +1,3 @@
-"""The verification policy.
-
-The distinction these tests exist to protect is between a warning and a blocker:
-not severity, but who is entitled to decide. A researcher may knowingly accept
-losing a citation. Nobody can knowingly accept a fabricated statistic, because
-agreeing to it would require already knowing it was fabricated.
-"""
-
 from __future__ import annotations
 
 import pytest
@@ -48,12 +40,6 @@ def cited_paragraph(document: Document) -> Paragraph:
 
 
 def test_moving_a_citation_does_not_trigger_re_verification(document: Document) -> None:
-    """Position is the thing that looks like it matters and does not.
-
-    A marker that slid because an earlier sentence was cut is still attached to
-    the same claim, and re-verifying it would spend a model call to confirm that
-    nothing happened.
-    """
     paragraph = cited_paragraph(document)
     sentences = paragraph.text.split(". ")
     if len(sentences) < 2:
@@ -85,11 +71,6 @@ def test_rewording_the_host_sentence_does_trigger_re_verification(
 
 
 def test_an_unverifiable_attachment_is_never_recorded_as_a_pass(document: Document) -> None:
-    """A check that could not run is reported as uncertainty.
-
-    Recording it as a pass would present "we did not look" as "we looked and it
-    was fine", which is the one thing a safety check must never do.
-    """
     paragraph = cited_paragraph(document)
     citation_id = paragraph.citation_ids[0]
     builder = CandidateRevisionBuilder(document)
@@ -112,7 +93,6 @@ def test_an_unverifiable_attachment_is_never_recorded_as_a_pass(document: Docume
 def test_a_removed_citation_warns_with_the_marker_the_author_wrote(
     document: Document,
 ) -> None:
-    """ "One citation was removed" is not something a researcher can check."""
     paragraph = cited_paragraph(document)
     citation_id = paragraph.citation_ids[0]
     builder = CandidateRevisionBuilder(document)
@@ -133,8 +113,6 @@ def test_a_removed_citation_warns_with_the_marker_the_author_wrote(
 
 
 def test_a_reference_left_uncited_is_retained_and_reported(document: Document) -> None:
-    """Retained automatically, because dropping source material silently is worse
-    than a bibliography entry with no callout."""
     builder = CandidateRevisionBuilder(document)
     for paragraph in document.paragraphs():
         if paragraph.citation_ids:
@@ -153,7 +131,6 @@ def test_a_reference_left_uncited_is_retained_and_reported(document: Document) -
 
 
 def test_structural_damage_blocks(document: Document) -> None:
-    """No acknowledgement makes a malformed document safe to store."""
     broken = document.model_copy(update={"sections": document.sections[:-1]})
 
     result = verify(
@@ -165,7 +142,6 @@ def test_structural_damage_blocks(document: Document) -> None:
 
 
 def test_a_citation_pointing_at_a_missing_reference_blocks(document: Document) -> None:
-    """At export this renders as an empty bracket, which is worse than an error."""
     paragraph = cited_paragraph(document)
     citation_id = paragraph.citation_ids[0]
     node = document.citations[citation_id]
@@ -216,8 +192,6 @@ def test_a_partially_supported_addition_warns(document: Document) -> None:
 
 
 def test_an_unsupported_addition_blocks(document: Document) -> None:
-    """Adding a citation is an assertion this system makes on the researcher's
-    behalf, so the bar is higher than for one the author chose."""
     result = verify(
         VerificationInputs(
             base=document,
@@ -232,12 +206,6 @@ def test_an_unsupported_addition_blocks(document: Document) -> None:
 
 
 def test_a_reference_whose_csl_id_disagrees_cannot_exist_at_all() -> None:
-    """The invariant that otherwise deletes bibliography entries silently.
-
-    Enforced at construction rather than at verification, so a candidate carrying
-    one cannot be built, stored, or loaded. That is strictly stronger than a
-    check: there is no path that reaches verification with one.
-    """
     with pytest.raises(IdentityInvariantError):
         ReferenceRecord(
             id="ref_added_009",
@@ -251,7 +219,6 @@ def test_a_reference_whose_csl_id_disagrees_cannot_exist_at_all() -> None:
 
 
 def test_an_incomplete_new_reference_blocks(document: Document) -> None:
-    """A citation a reader cannot look up is a gesture at a citation."""
     bare = ReferenceRecord(id="ref_added_009", csl=CSLItem(id="ref_added_009", title="A Paper"))
     candidate = document.model_copy(update={"references": (*document.references, bare)})
 
@@ -266,11 +233,6 @@ def test_an_incomplete_new_reference_blocks(document: Document) -> None:
 
 
 def test_warning_ids_are_bound_to_the_candidate(document: Document) -> None:
-    """An acknowledgement collected for one proposal must not fit another.
-
-    Warning ids are derived from content plus the candidate's hash, so the same
-    consequence against a different candidate is a different id.
-    """
     paragraph = cited_paragraph(document)
 
     def removal_ids(extra: str) -> set[str]:
@@ -288,7 +250,6 @@ def test_warning_ids_are_bound_to_the_candidate(document: Document) -> None:
 
 
 def test_a_degraded_provider_is_always_reported(document: Document) -> None:
-    """Silence here would let an outage read as "there was nothing to find"."""
     result = verify(
         VerificationInputs(
             base=document,
@@ -304,7 +265,6 @@ def test_a_degraded_provider_is_always_reported(document: Document) -> None:
 
 
 def test_falling_short_of_the_target_is_reported(document: Document) -> None:
-    """In a diff, a section that lost a twentieth looks like one that worked."""
     result = verify(
         VerificationInputs(
             base=document,

@@ -1,18 +1,3 @@
-"""Splitting a snapshotted abstract into addressable evidence spans.
-
-Evidence is offered to the model as ``span_id: text`` and comes back as span ids
-alone. The server then builds the ``EvidenceAnchor`` from its own offsets, which
-is what makes "the model quoted something the source does not say" impossible
-rather than merely unlikely.
-
-Offsets are computed against the exact string stored in ``source_records``. The
-canonical segmenter is reused rather than reimplemented, so an abstract and a
-manuscript paragraph are split by the same rules; a second splitter would drift
-from the first and silently move every anchor it produced.
-
-Pure: no I/O.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -26,8 +11,6 @@ MAX_SPANS = 24
 
 @dataclass(frozen=True)
 class EvidenceSpan:
-    """One addressable region of a snapshotted abstract."""
-
     id: str
     text: str
     char_start: int
@@ -44,7 +27,6 @@ class EvidenceSpan:
 
 
 def split_abstract(abstract: str, *, max_spans: int = MAX_SPANS) -> tuple[EvidenceSpan, ...]:
-    """Split an abstract into sentence spans with exact offsets into it."""
     if not abstract.strip():
         return ()
     spans: list[EvidenceSpan] = []
@@ -61,5 +43,4 @@ def split_abstract(abstract: str, *, max_spans: int = MAX_SPANS) -> tuple[Eviden
 
 
 def span_listing(spans: tuple[EvidenceSpan, ...]) -> list[tuple[str, str]]:
-    """The (id, text) pairs a prompt shows the model."""
     return [(span.id, span.text) for span in spans]

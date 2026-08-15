@@ -1,11 +1,3 @@
-"""Review runs, as they reach the database and come back out.
-
-The property that matters here is that findings persist as *anchors*, and every
-quoted string in the response is re-derived from the revision and from the
-snapshotted abstract. A stored review carrying its own copy of the prose would
-drift the moment anything else changed.
-"""
-
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
@@ -126,7 +118,6 @@ def test_verdicts_survive_the_round_trip(db: Session, stored_paper: Paper) -> No
 
 
 def test_a_failed_run_still_leaves_a_row(db: Session, stored_paper: Paper) -> None:
-    """ "The review errored" and "the review found nothing" are different states."""
     run = record_failure(
         db,
         run_id=new_id("rev"),
@@ -155,11 +146,6 @@ def test_a_work_is_snapshotted_once_however_often_it_is_cited(
 
 
 def test_a_snapshot_is_never_refreshed(db: Session, stored_paper: Paper) -> None:
-    """Evidence must keep meaning what it meant when the verdict was made.
-
-    A provider silently editing an abstract would move every span offset, and
-    quoted evidence would drift away from the claim it was about.
-    """
     record_id = SourceStore(db, stored_paper.id).snapshot(
         resolved_work().model_copy(update={"abstract": ABSTRACT})
     )
@@ -173,7 +159,6 @@ def test_a_snapshot_is_never_refreshed(db: Session, stored_paper: Paper) -> None
 
 
 def test_an_absent_abstract_is_filled_in_later(db: Session, stored_paper: Paper) -> None:
-    """Filling a gap is not overwriting: no anchor can point into a NULL."""
     record_id = SourceStore(db, stored_paper.id).snapshot(
         resolved_work().model_copy(update={"abstract": None})
     )
@@ -187,8 +172,6 @@ def test_an_absent_abstract_is_filled_in_later(db: Session, stored_paper: Paper)
 
 
 def test_provider_attempts_are_recorded_against_the_paper(db: Session, stored_paper: Paper) -> None:
-    """Query text is manuscript-derived, so it lives in a paper-scoped row that
-    cascades on delete, and never in a log line."""
     provider_session = ProviderSession(operation_id="op_test")
     provider_session.record(
         AttemptRecord(
@@ -210,7 +193,6 @@ def test_provider_attempts_are_recorded_against_the_paper(db: Session, stored_pa
 
 
 def test_only_https_provider_links_reach_the_ui(db: Session, stored_paper: Paper) -> None:
-    """Provider metadata is untrusted output."""
     record_id = SourceStore(db, stored_paper.id).snapshot(
         ProviderWork(
             provider=ProviderName.OPENALEX,
@@ -230,13 +212,6 @@ def test_only_https_provider_links_reach_the_ui(db: Session, stored_paper: Paper
 
 
 def test_a_suggestion_round_trips_as_a_linkable_source(db: Session, stored_paper: Paper) -> None:
-    """A missing-work finding is only worth anything if the work is reachable.
-
-    The finding stores source record ids; the presenter reads title, authors and
-    link back out of the snapshot. Nothing about the suggested work is carried in
-    the finding row itself, so a snapshot that vanished cannot leave a
-    confident-looking recommendation pointing at nothing.
-    """
     run = run_and_persist(db, stored_paper, suggestions=[uncited_work()])
     presented = review_run(db, run)
 
@@ -263,12 +238,6 @@ def test_a_suggestion_whose_snapshot_is_gone_is_not_rendered(
 
 
 def test_snapshotting_leaves_no_transaction_open(db: Session, stored_paper: Paper) -> None:
-    """The caller's next act is a model call that can take tens of seconds.
-
-    A snapshot that left its transaction open would pin a pooled connection for
-    the length of the review, which is what the operation's phase structure
-    exists to prevent -- and what this module's docstring promises.
-    """
     store = SourceStore(db, stored_paper.id)
 
     store.snapshot(resolved_work())
@@ -279,13 +248,6 @@ def test_snapshotting_leaves_no_transaction_open(db: Session, stored_paper: Pape
 
 
 def test_a_model_authored_verdict_records_who_made_it(db: Session, stored_paper: Paper) -> None:
-    """A judgement nobody can trace back is one nobody can re-examine.
-
-    The provider is part of it, not decoration: two providers serve models under
-    the same name, and a configured fallback can answer a call the primary was
-    configured for. Without it a stored verdict cannot be attributed even in
-    principle.
-    """
     run = run_and_persist(db, stored_paper, suggestions=[uncited_work()])
     rows = db.query(ReviewFindingRow).filter_by(run_id=run.id).all()
 
@@ -316,11 +278,6 @@ def test_a_model_authored_verdict_records_who_made_it(db: Session, stored_paper:
 
 
 def test_a_server_decided_verdict_claims_no_model(db: Session, stored_paper: Paper) -> None:
-    """Unresolved and evidence-unavailable are the server's own conclusions.
-
-    Attaching a provider to them would credit a model with a decision it was
-    never asked to make.
-    """
     run = run_and_persist(db, stored_paper)
     rows = db.query(ReviewFindingRow).filter_by(run_id=run.id).all()
 
@@ -334,13 +291,6 @@ def test_a_server_decided_verdict_claims_no_model(db: Session, stored_paper: Pap
 
 
 def test_a_finding_can_be_marked_handled_and_reopened(db: Session, stored_paper: Paper) -> None:
-    """Triage records that the researcher read a finding.
-
-    A full-coverage run produces hundreds, so working through them needs a way to
-    say "dealt with". It is presentation only: the finding stays in the run and
-    stays in the run's counts, because removing it from its own denominator would
-    be the reporting failure this system exists to avoid.
-    """
     run = ReviewRun(
         id=repositories.new_id("run"),
         paper_id=stored_paper.id,

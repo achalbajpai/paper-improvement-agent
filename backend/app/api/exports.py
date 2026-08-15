@@ -1,5 +1,3 @@
-"""HTTP translation for export preflight, export runs, and artifact downloads."""
-
 from __future__ import annotations
 
 from fastapi import APIRouter, Response

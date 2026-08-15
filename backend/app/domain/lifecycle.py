@@ -1,11 +1,3 @@
-"""Lifecycle vocabulary shared by the services and the API.
-
-These enums started in ``api/schemas.py`` because that is where they are
-serialised, but the parse pipeline and the acceptance transaction reason about
-them too, and a service importing from ``api/`` would invert the dependency. They
-live here and are re-exported for the wire.
-"""
-
 from __future__ import annotations
 
 from enum import StrEnum

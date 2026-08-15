@@ -1,8 +1,3 @@
-"""Checks about which citations exist and what supports the new ones.
-
-Removal is a consequence the researcher can accept; a citation added without
-evidence behind it is not."""
-
 from __future__ import annotations
 
 from app.domain.document import Document
@@ -26,13 +21,6 @@ from app.services.editor.verification.inputs import (
 def _check_citation_preservation(
     inputs: VerificationInputs, state: _Accumulator, content_hash: str
 ) -> None:
-    """Removal is allowed. Silent removal is not.
-
-    Shortening a section legitimately drops citations along with the sentences
-    that carried them, so this warns rather than blocks -- but it warns with the
-    marker the author actually wrote, because "one citation was removed" is not
-    something a researcher can check.
-    """
     removed = inputs.delta.removed_citation_ids
     for citation_id in removed:
         node = inputs.base.citations.get(citation_id)
@@ -75,7 +63,6 @@ def _check_citation_preservation(
 
 
 def _left_uncited(inputs: VerificationInputs) -> tuple[str, ...]:
-    """References that were cited before the edit and are cited no longer."""
     before = _cited_reference_ids(inputs.base)
     after = _cited_reference_ids(inputs.candidate)
     return tuple(sorted(before - after))
@@ -93,12 +80,6 @@ def _cited_reference_ids(document: Document) -> set[str]:
 def _check_new_citation_support(
     inputs: VerificationInputs, state: _Accumulator, content_hash: str
 ) -> None:
-    """A citation this system added has to have earned its place.
-
-    The bar is higher than for a citation the author chose: adding one is an
-    assertion this system is making on the researcher's behalf, so anything short
-    of positive evidence from the snapshotted abstract either warns or blocks.
-    """
     if not inputs.added:
         return
 

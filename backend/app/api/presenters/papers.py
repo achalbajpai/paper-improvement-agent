@@ -1,5 +1,3 @@
-"""Paper rows and parse quality, as the papers endpoints return them."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -75,11 +73,6 @@ def paper_detail(session: Session, paper: Paper) -> PaperDetail:
 
 
 def _first_report(session: Session, paper_id: str) -> dict[str, Any] | None:
-    """The parse revision's stored postvalidation report.
-
-    Always revision 1: linkage quality is a property of the extraction, and a
-    later revision inherits it rather than re-earning it.
-    """
     row = session.execute(
         select(DocumentRevision.parse_report).where(
             DocumentRevision.paper_id == paper_id, DocumentRevision.revision_number == 1

@@ -1,16 +1,3 @@
-"""What actually changed between two snapshots.
-
-The DeltaEngine that produces this compares the before and after ASTs directly.
-It never reads the model's account of what it did, and it never reads the
-editing code's account either.
-
-The reason is the failure mode this system is built around: a model asked to
-shorten a paragraph reports "removed two sentences" while having also dropped a
-citation. Both the report and the mutation come from the same untrusted step, so
-one cannot check the other. Only an independent comparison of the two documents
-can, and this is its output.
-"""
-
 from __future__ import annotations
 
 from enum import StrEnum
@@ -51,20 +38,6 @@ class Change(BaseModel):
 
 
 class ComputedEditDelta(BaseModel):
-    """The authoritative account of one edit.
-
-    Word counts come in two pairs because they answer two different questions.
-    The ``words_*`` pair is the whole manuscript, which is what a researcher
-    needs to know about the paper. The ``scope_words_*`` pair counts only the
-    paragraphs this edit actually changed, which is what they need to know about
-    the edit.
-
-    Reporting the document pair as though it were the edit's own size is how a
-    126-word trim to an introduction gets displayed as ``6962 -> 6836`` and reads
-    as though the whole paper had been rewritten. The difference is identical
-    either way; the denominator is not.
-    """
-
     model_config = ConfigDict(frozen=True)
 
     changes: tuple[Change, ...] = Field(default_factory=tuple)
@@ -113,11 +86,6 @@ class ComputedEditDelta(BaseModel):
         return not self.changes
 
     def summary(self) -> str:
-        """A plain-language account, built from the computed changes only.
-
-        This is what the explanation prompt is shown. It contains identifiers and
-        counts, never manuscript prose.
-        """
         if self.is_empty:
             return "No changes."
         counts: dict[str, int] = {}

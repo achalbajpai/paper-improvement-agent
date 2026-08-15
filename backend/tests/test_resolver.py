@@ -1,12 +1,3 @@
-"""The resolution ladder.
-
-The property under test throughout is that confidence tracks evidence. An
-identifier match is certain; a title match with corroboration is probable; a bare
-title match is uncertain and therefore *not resolved*, because a support verdict
-issued against a paper we merely suspect is the cited one is worse than admitting
-we do not know which paper it is.
-"""
-
 from __future__ import annotations
 
 import pytest
@@ -73,8 +64,6 @@ def reference(
 
 
 class FakeOpenAlex(OpenAlexClient):
-    """A stand-in that records calls. Subclassed so the real surface is honoured."""
-
     def __init__(
         self,
         *,
@@ -146,7 +135,6 @@ class FakeS2(SemanticScholarClient):
 
 @pytest.fixture(autouse=True)
 def clean_cache() -> None:
-    """Each test starts with an empty cache; hits between tests would hide calls."""
     get_cache().clear()
 
 
@@ -179,8 +167,6 @@ def test_a_doi_found_in_the_raw_string_is_used_when_grobid_missed_it() -> None:
 
 
 def test_the_ladder_stops_at_the_first_rung_that_matches() -> None:
-    """Nothing a fuzzy search returns can outrank an exact identifier, and the
-    extra call would spend budget the abstract fetches need."""
     openalex = FakeOpenAlex(by_doi=work())
     resolver, deadline = build(openalex, FakeS2())
 
@@ -294,7 +280,6 @@ def test_degradation_is_reported_rather_than_swallowed() -> None:
 
 
 def test_a_transient_failure_is_never_cached_but_a_genuine_miss_is() -> None:
-    """Caching a 429 would turn a momentary limit into hours of reported absence."""
     s2 = FakeS2(rate_limited=True)
     resolver, deadline = build(FakeOpenAlex(), s2)
     resolver.resolve(reference(doi="10.1145/3292500.3330701"), deadline)

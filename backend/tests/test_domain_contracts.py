@@ -1,10 +1,3 @@
-"""The frozen domain invariants.
-
-These are the checks that would otherwise fail silently in production: a hash
-that is not stable, a CSL id that does not match its record, an acknowledgement
-that can be replayed.
-"""
-
 from __future__ import annotations
 
 import pytest
@@ -54,7 +47,6 @@ def test_normalize_text_collapses_whitespace() -> None:
 
 
 def test_reference_rejects_mismatched_csl_id() -> None:
-    """The invariant that would otherwise delete a bibliography entry silently."""
     with pytest.raises(IdentityInvariantError):
         ReferenceRecord(id="ref_imported_001", csl=CSLItem(id="something_else"))
 
@@ -112,7 +104,6 @@ def test_locator_encodes_into_the_suffix() -> None:
 
 
 def test_signature_distinguishes_mode() -> None:
-    """Two items agreeing on reference and locator are not the same citation."""
     normal = CitationItem(reference_id="ref_imported_001", mode=CitationMode.NORMAL)
     narrative = CitationItem(reference_id="ref_imported_001", mode=CitationMode.AUTHOR_IN_TEXT)
     assert normal.signature() != narrative.signature()
@@ -146,13 +137,6 @@ def _document() -> Document:
 
 
 def test_paragraph_text_excludes_citation_markers() -> None:
-    """Prose without markers, and without the hole a removed marker leaves.
-
-    The paragraph is ``Transformers changed sequence modelling [1].`` -- dropping
-    the marker naively yields ``modelling .``, which would count as an extra word
-    and would make adding a citation appear in the diff as a prose change. The
-    gap is closed where prose is defined, so every caller sees the same answer.
-    """
     document = _document()
     paragraph = document.paragraph("p_1_1")
     assert paragraph is not None
@@ -162,7 +146,6 @@ def test_paragraph_text_excludes_citation_markers() -> None:
 
 
 def test_cited_reference_ids_exclude_uncited_works() -> None:
-    """The complement is what targeted nocite has to retain at export."""
     document = _document()
     assert document.cited_reference_ids() == {"ref_imported_001"}
     uncited = {r.id for r in document.references} - document.cited_reference_ids()
@@ -170,7 +153,6 @@ def test_cited_reference_ids_exclude_uncited_works() -> None:
 
 
 def test_warning_id_is_bound_to_content() -> None:
-    """An acknowledgement cannot be replayed against a regenerated proposal."""
     first = VerificationWarning.build(
         WarningCode.CITATION_REMOVED,
         "Citation [12] will be removed from the Introduction.",
@@ -212,7 +194,6 @@ def test_required_warning_ids_are_sorted_and_complete() -> None:
 
 
 def test_snapshot_hash_covers_verification_not_just_prose() -> None:
-    """A proposal with different warnings is a different snapshot."""
     document = _document()
     delta = ComputedEditDelta()
     clean = CandidateRevisionSnapshot(

@@ -1,38 +1,3 @@
-"""Grounded peer review.
-
-The review answers two questions, in two passes over the manuscript.
-
-**Does the work you cited support what you said?** Per cited claim, from the
-cited work's abstract. That is this module.
-
-**What did you not cite that you should have?** Per claim, by searching both
-providers for work absent from the bibliography. That is ``missing_work``, run
-here over its own paragraph selection: this pass spends its budget where
-citations are densest, because that is where a support verdict has something to
-check, and searching hardest there would be searching where there is least to
-find.
-
-Four properties make the support answer trustworthy rather than plausible.
-
-**Per (claim, occurrence, reference).** ``[2, 5]`` is two separate assertions of
-support. Collapsing them into one verdict about the sentence would hide which of
-the two is weak, which is the only actionable part of the finding.
-
-**The server owns every quoted string.** The model receives ids and returns ids.
-Claim text comes from the segmenter; evidence text comes from a snapshotted
-abstract by character offset.
-
-**Source state is never a model's judgement.** Unresolved, uncertain, and
-abstract-unavailable are decided by the server from the resolution ladder, and
-the model is not asked about a work whose identity is not established. A verdict
-against the wrong paper is worse than no verdict.
-
-**Absence of evidence is not a finding against the author.** There is no
-``UNSUPPORTED``. The strongest negative the model may return is
-``CONTRADICTED``, which is a claim about what the abstract *says*, not about what
-the cited paper contains.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -85,8 +50,6 @@ logger = get_logger(__name__)
 
 @dataclass
 class ReviewOutcome:
-    """One review run's result, before persistence."""
-
     findings: list[ReviewFinding] = field(default_factory=list)
     degradations: tuple[ProviderDegradation, ...] = ()
     stats: dict[str, int] = field(default_factory=dict)
@@ -95,8 +58,6 @@ class ReviewOutcome:
 
 
 class ReviewRunner:
-    """Runs one review over one revision."""
-
     def __init__(
         self,
         session: Session,
@@ -210,14 +171,6 @@ class ReviewRunner:
         return findings
 
     def _claims_for(self, paragraph: Paragraph, deadline: Deadline) -> tuple[ClaimTarget, ...]:
-        """LLM call one: which sentences make a citable claim.
-
-        The model picks from a list of sentence ids the server issued, so a claim
-        can never be attached to a sentence the manuscript does not contain.
-
-        Cached per paragraph, because both passes ask this question and the
-        answer does not depend on which of them is asking.
-        """
         if paragraph.id in self._claims:
             return self._claims[paragraph.id]
 
@@ -293,11 +246,6 @@ class ReviewRunner:
         reference: ReferenceRecord,
         deadline: Deadline,
     ) -> ReviewFinding:
-        """One (claim, occurrence, reference) triple.
-
-        The source's state is settled before the model is consulted, and three of
-        the possible answers are reached without consulting it at all.
-        """
         resolution = self._resolve(reference, deadline)
 
         if resolution.work is None:
@@ -340,12 +288,6 @@ class ReviewRunner:
         record_id: str,
         deadline: Deadline,
     ) -> tuple[SupportVerdict, tuple[EvidenceAnchor, ...], str, Provenance]:
-        """LLM call two: does this abstract support this claim.
-
-        The model returns a verdict and span ids. The server builds the anchors
-        from its own offsets, so the evidence shown to the researcher is text the
-        source actually contains, quoted by the server.
-        """
         allowlist = Allowlist("span", {span.id: span for span in spans})
         prompt = support_prompt.build_prompt(claim_text, span_listing(spans))
         result = self.llm.complete_structured(
@@ -373,12 +315,6 @@ class ReviewRunner:
         reason: str = "",
         provenance: Provenance | None = None,
     ) -> ReviewFinding:
-        """One finding.
-
-        A verdict the server decided on its own -- unresolved, uncertain, no
-        abstract -- carries no provenance, because no model was asked. Recording
-        one would misattribute a server decision to a provider.
-        """
         return ReviewFinding(
             id=new_id("find"),
             kind=FindingKind.CITATION_SUPPORT,
@@ -394,11 +330,6 @@ class ReviewRunner:
         )
 
     def _structural_findings(self, document: Document) -> list[ReviewFinding]:
-        """References that were examined and could not be identified.
-
-        Reported once per reference rather than once per citation of it: the
-        researcher has one bibliography entry to fix.
-        """
         findings: list[ReviewFinding] = []
         for reference_id, resolution in sorted(self._resolutions.items()):
             if resolution.resolved:
@@ -445,13 +376,6 @@ class ReviewRunner:
 
 
 def _with_search_notes(findings: list[ReviewFinding], notes: dict[str, str]) -> list[ReviewFinding]:
-    """Tell an uncited claim what the search for it actually did.
-
-    "This sentence has no citation" on its own invites the reader to assume
-    nothing was looked for. A claim that was searched and produced nothing, and
-    a claim whose search hit a degraded provider, are different situations and
-    the finding says which one it was.
-    """
     enriched: list[ReviewFinding] = []
     for finding in findings:
         if finding.kind is not FindingKind.UNCITED_CLAIM:
@@ -468,12 +392,6 @@ def _with_search_notes(findings: list[ReviewFinding], notes: dict[str, str]) -> 
 
 
 def _paragraphs_worth_reviewing(document: Document, limit: int) -> list[Paragraph]:
-    """Which paragraphs to spend the budget on.
-
-    Densely cited paragraphs first, because a citation is where a support verdict
-    has something to check. Ties break on document order so two runs over one
-    manuscript review the same paragraphs.
-    """
     ordered = sorted(
         enumerate(document.paragraphs()),
         key=lambda pair: (-len(pair[1].citation_ids), pair[0]),
@@ -492,7 +410,6 @@ def _anchor_for(paragraph: Paragraph, sentence: Sentence) -> ClaimAnchor:
 
 
 def _null_anchor() -> ClaimAnchor:
-    """For findings about the bibliography, which no sentence owns."""
     return ClaimAnchor(
         paragraph_id="",
         sentence_index=-1,
@@ -519,14 +436,6 @@ def _server_reason(verdict: SupportVerdict) -> str:
 
 
 def claim_run(session: Session, *, paper_id: str, revision_id: str) -> ReviewRun:
-    """Announce the run before any slow work starts.
-
-    A review takes minutes of provider and model calls. If the row were written
-    only on completion, a process killed during those minutes would leave
-    nothing at all: no failed run for the researcher, and nothing for the
-    startup sweep to settle. The row exists first, PENDING, and every exit path
-    resolves it.
-    """
     run = ReviewRun(
         id=new_id("rev"),
         paper_id=paper_id,
@@ -546,7 +455,6 @@ def persist(
     outcome: ReviewOutcome,
     provider_session: ProviderSession,
 ) -> ReviewRun:
-    """Resolve the claimed run, its findings, and the call log in one transaction."""
     run = session.get(ReviewRun, run_id)
     if run is None:
         raise NotFoundError("This review run no longer exists.", run_id=run_id)
@@ -589,16 +497,6 @@ def _persist_resolutions(
     run_id: str,
     outcome: ReviewOutcome,
 ) -> None:
-    """Record what this run concluded about each bibliography entry's identity.
-
-    Resolution cannot live on the revision, which is content-addressed and hashed
-    against by the review's own claim anchors, and it is not derivable from
-    ``source_records``, which are keyed by provider identity rather than by the
-    reference they resolved. Without a row here the bibliography reports every
-    entry as unmatched forever, beside a coverage line saying the opposite.
-
-    One row per reference: a later run supersedes an earlier verdict.
-    """
     existing = {
         row.reference_id: row
         for row in session.query(ReferenceResolution).filter_by(paper_id=paper_id)
@@ -630,11 +528,6 @@ def record_failure(
     failure_code: str,
     provider_session: ProviderSession,
 ) -> ReviewRun:
-    """A run that failed still leaves a row saying so.
-
-    The claimed row is normally committed before slow provider work starts. The
-    defensive re-creation below also covers rollback or cleanup that removed it.
-    """
     run = session.get(ReviewRun, run_id)
     if run is None:
         run = ReviewRun(id=run_id, paper_id=paper_id, revision_id=revision_id)

@@ -1,19 +1,3 @@
-"""Provider records, as this system stores them.
-
-A ``SourceRecordSnapshot`` is a copy, taken at the moment the record was used and
-never refreshed. That is not caching, it is correctness: evidence anchors address
-a span of the abstract by character offsets, and a provider silently editing an
-abstract would move every offset so that quoted evidence drifts away from the
-claim it was about. The snapshot is the thing the verdict was actually made
-against.
-
-``ProviderWork`` is the neutral shape both adapters return, so nothing downstream
-learns whether a work came from OpenAlex or Semantic Scholar in order to read its
-title.
-
-Pure: no HTTP, no database.
-"""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -31,16 +15,12 @@ class ProviderName(StrEnum):
 
 
 class RetrievalPurpose(StrEnum):
-    """Why a provider was called. Recorded so budgets can be read per purpose."""
-
     RESOLVE_REFERENCE = "RESOLVE_REFERENCE"
     FETCH_ABSTRACT = "FETCH_ABSTRACT"
     SEARCH_CANDIDATES = "SEARCH_CANDIDATES"
 
 
 class ProviderWork(BaseModel):
-    """One work as a provider described it, normalised across providers."""
-
     model_config = ConfigDict(frozen=True)
 
     provider: ProviderName
@@ -67,7 +47,6 @@ class ProviderWork(BaseModel):
         return bool(self.abstract and self.abstract.strip())
 
     def identity_keys(self) -> tuple[str, ...]:
-        """Every identifier this work can be matched on, strongest first."""
         keys: list[str] = []
         if self.doi:
             keys.append(f"doi:{self.doi.casefold()}")
@@ -77,7 +56,6 @@ class ProviderWork(BaseModel):
         return tuple(keys)
 
     def to_csl(self, reference_id: str) -> CSLItem:
-        """A CSL item for this work, ready to be inserted into a bibliography."""
         fields: dict[str, Any] = {
             "id": reference_id,
             "type": self.work_type,
@@ -103,8 +81,6 @@ class ProviderWork(BaseModel):
 
 
 class SourceRecordSnapshot(BaseModel):
-    """A provider record frozen at the moment it was used."""
-
     model_config = ConfigDict(frozen=True)
 
     id: str

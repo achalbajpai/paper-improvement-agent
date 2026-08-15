@@ -1,17 +1,3 @@
-"""The review operation, fenced.
-
-Shaped like the parse: a short transaction to establish what is being reviewed,
-the slow work with no transaction open, then a short transaction to write. A
-review takes minutes of provider and model calls, and holding a row lock across
-that would pin a connection for the whole run.
-
-A failed review still writes a run row. "The review errored" and "the review
-found nothing" are different states, and a run that vanished on failure leaves
-the researcher unable to tell them apart. The handler catches every exception
-rather than only the typed ones: a failure this system did not anticipate is
-exactly the one whose run row would otherwise be missing.
-"""
-
 from __future__ import annotations
 
 import threading
@@ -37,8 +23,6 @@ logger = get_logger(__name__)
 
 @dataclass(frozen=True)
 class _Claim:
-    """What a claimed run needs to execute, detached from any session."""
-
     run_id: str
     revision_id: str
     document: Document
@@ -67,14 +51,6 @@ def start_review(
     operation_id: str,
     llm: StructuredLLM | None = None,
 ) -> ReviewRun:
-    """Claim a run, return it PENDING, and continue the work off the request.
-
-    A review is minutes of model and provider calls, longer than a request should
-    be held open. The run row is committed first, so status is pollable at once.
-
-    A daemon thread rather than a queue: one API process, and an interrupted run is
-    already reconciled to a terminal state at startup.
-    """
     claim = _claim(session, paper_id)
     session.commit()
     run = repositories.get_review_run(session, claim.run_id)
@@ -95,7 +71,6 @@ def _execute_detached(
     operation_id: str,
     llm: StructuredLLM | None,
 ) -> None:
-    """Run the slow half on its own session, swallowing what the caller cannot see."""
     try:
         with session_scope() as session:
             _execute(session, paper_id, claim, operation_id=operation_id, llm=llm)
@@ -110,7 +85,6 @@ def run_review(
     operation_id: str,
     llm: StructuredLLM | None = None,
 ) -> ReviewRun:
-    """Review the current revision synchronously. Used by the live smoke."""
     claim = _claim(session, paper_id)
     session.commit()
     return _execute(session, paper_id, claim, operation_id=operation_id, llm=llm)

@@ -1,5 +1,3 @@
-"""Filesystem recovery is conservative and database-reconciled."""
-
 from __future__ import annotations
 
 import os

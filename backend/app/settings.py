@@ -1,9 +1,3 @@
-"""Configuration, loaded once.
-
-Every timeout and budget in the execution model appears here with a default, so
-no module reaches for ``os.getenv`` and no deadline is invented at a call site.
-"""
-
 from __future__ import annotations
 
 from functools import lru_cache
@@ -92,7 +86,6 @@ class Settings(BaseSettings):
 
     @property
     def trash_dir(self) -> Path:
-        """Server-owned path that manuscript directories move to before deletion."""
         return self.data_dir / "trash"
 
     @property
@@ -101,7 +94,6 @@ class Settings(BaseSettings):
 
     @property
     def effective_llm_api_key(self) -> str:
-        """Resolve the generic key first, then the selected provider's native key."""
         if self.llm_api_key:
             return self.llm_api_key
         if self.llm_provider.lower() == "gemini":

@@ -1,18 +1,3 @@
-"""What export can and cannot promise about this revision, said before it starts.
-
-The same distinction the acceptance path draws, applied to a different question.
-A **blocker** means the export would produce a document that misrepresents the
-manuscript, so it does not run. A **warning** means the export will be honest but
-lossy in a specific, nameable way, and the researcher may accept that.
-
-The fidelity promise is deliberately narrow, and stating it here is the point:
-the export is a retypeset draft unless every non-prose block has a source-backed
-representation. Fonts, line breaks, page geometry, and the original layout are
-not preserved. A figure whose image bytes and coordinates are unavailable cannot
-be reproduced at all, which is why it blocks rather than being dropped with a
-shrug.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -61,7 +46,6 @@ def check(
     retained_uncited_ids: tuple[str, ...] = (),
     dropped_added_ids: tuple[str, ...] = (),
 ) -> Preflight:
-    """Everything the researcher should know before an export is started."""
     content_hash = canonical_sha256(
         {"revision": revision_id, "style": citation_style.value if citation_style else ""}
     )
@@ -133,15 +117,6 @@ def check(
 
 
 def _fidelity_warnings(document: Document, content_hash: str) -> list[VerificationWarning]:
-    """Everything the export will carry less faithfully than the source.
-
-    The two citation cases are reported separately because they are different
-    losses. A partial-modifier marker had a page number this system saw and could
-    not confidently parse, so the locator may go missing from an otherwise normal
-    citation. A raw-only marker was never structured at all and goes out as the
-    literal text the author wrote, outside the bibliography. Merging them would
-    misdescribe whichever one is not the majority.
-    """
     warnings: list[VerificationWarning] = []
 
     partial = document.citations_by_parse_status(SemanticParseStatus.PARTIAL_MODIFIERS)

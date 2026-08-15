@@ -1,8 +1,3 @@
-"""Re-verifying citations whose sentence was reworded.
-
-A citation that still parses may no longer be supported by the source it points
-at, and only re-reading the evidence against the new wording can tell."""
-
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -43,13 +38,6 @@ def _check_attachment(
     llm: StructuredLLM | None,
     deadline: Deadline | None,
 ) -> None:
-    """Re-verify citations whose claim was reworded.
-
-    Triggered by changed context rather than by movement. A citation that shifted
-    because an earlier sentence was cut still supports the same claim; a citation
-    whose sentence was reworded around it may not, and that one keeps its original
-    position.
-    """
     before = contexts_for(inputs.base)
     after = contexts_for(inputs.candidate)
     affected = changed_contexts(before, after)
@@ -157,17 +145,6 @@ def _reverify(
     llm: StructuredLLM,
     deadline: Deadline,
 ) -> list[tuple[str, SupportVerdict]]:
-    """Judge the new claim against each cited source's snapshotted abstract.
-
-    One verdict per reference in the occurrence, not one for the occurrence.
-    ``[A, B]`` is two assertions of support, and checking only A lets a rewrite
-    through that B now contradicts -- which is exactly the case this check
-    exists to catch.
-
-    Never a live provider call: the abstract is read from the snapshot taken
-    when the source was first used, so a verdict is always about text this
-    system can still show the researcher.
-    """
     node = inputs.candidate.citations.get(citation_id)
     reference_ids = [item.reference_id for item in node.items if item.reference_id] if node else []
     if not reference_ids:
@@ -224,12 +201,6 @@ def _reverify_one(
 
 
 def _worst(verdicts: list[tuple[str, SupportVerdict]]) -> SupportVerdict:
-    """The occurrence is only as sound as its weakest reference.
-
-    A cluster where one source still supports the rewrite and another now
-    contradicts it is a contradicted cluster; reporting the best verdict would
-    hide the reference the researcher needs to look at.
-    """
     if not verdicts:
         return SupportVerdict.SOURCE_UNRESOLVED
     return max((verdict for _, verdict in verdicts), key=_SEVERITY.__getitem__)
@@ -249,15 +220,6 @@ _SEVERITY: dict[SupportVerdict, int] = {
 def _snapshot_for(
     session: Session, inputs: VerificationInputs, reference_id: str
 ) -> SourceRecord | None:
-    """The stored provider record behind one reference, scoped to this paper.
-
-    The reference's own ``source_record_id`` is preferred: it is the exact row
-    the resolver or the citation adder used, so no matching is involved. The
-    identifier fallback exists for references resolved before that link was
-    recorded, and is scoped to the paper -- source records are per-paper, and a
-    DOI match across the whole table can return an abstract snapshotted while
-    reviewing somebody else's manuscript.
-    """
     reference = inputs.candidate.reference(reference_id)
     if reference is None:
         return None
@@ -283,14 +245,6 @@ def _snapshot_for(
 def _unverifiable_warning(
     inputs: VerificationInputs, citation_ids: Sequence[str], content_hash: str
 ) -> VerificationWarning:
-    """One warning for every citation this edit could not re-verify.
-
-    One per citation produced six near-identical lines differing only by an
-    internal id, which is a worse account of the same fact: a researcher ticking
-    six boxes reads none of them. Citations are named as the author wrote them --
-    ``(Peters et al., 2018)`` rather than ``cite_imported_005`` -- because the
-    marker is what they can find in their own manuscript.
-    """
     markers = [_marker(inputs, citation_id) for citation_id in citation_ids]
     if len(markers) == 1:
         subject = f"The sentence citing {markers[0]} was"

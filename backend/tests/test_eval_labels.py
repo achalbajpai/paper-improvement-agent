@@ -1,11 +1,3 @@
-"""The hand labels, as a regression guard.
-
-The evaluation is a report, not a gate -- three papers cannot support a pass
-threshold. But a parser change that stops detecting a marker somebody read off
-the printed page is a regression whatever the report says, so the labelled
-markers are checked on every test run rather than only when the eval is invoked.
-"""
-
 from __future__ import annotations
 
 import importlib.util
@@ -25,13 +17,6 @@ pytestmark = pytest.mark.skipif(
 
 
 def _run_eval() -> Any:
-    """Import the harness from outside the package, as ``make eval`` runs it.
-
-    ``evals/`` is not on the import path, so the module is loaded by location and
-    registered in ``sys.modules`` first: ``dataclasses`` resolves annotations
-    through the module entry, and an unregistered module makes every dataclass in
-    the file fail to build.
-    """
     spec = importlib.util.spec_from_file_location("run_eval", EVALS / "run_eval.py")
     if spec is None or spec.loader is None:
         raise RuntimeError("run_eval.py could not be loaded")
@@ -62,7 +47,6 @@ def test_labels_are_well_formed() -> None:
 def test_every_numeric_labelled_marker_is_detected_and_linked(
     results: list[dict[str, Any]],
 ) -> None:
-    """The headline claim, checked rather than asserted in prose."""
     for result in results:
         score = result["markers_postvalidated"]
         if not score["linkage_checkable"]:
@@ -90,8 +74,6 @@ def test_no_bibliography_entry_is_lost(results: list[dict[str, Any]]) -> None:
 def test_postvalidation_never_reduces_structured_occurrences(
     results: list[dict[str, Any]],
 ) -> None:
-    """On this corpus it only recovers. A change that made it destructive would
-    show up here before it showed up in an export."""
     for result in results:
         raw = result["status_raw_grobid"]["occurrence_status"]["STRUCTURED"]
         post = result["status_postvalidated"]["occurrence_status"]["STRUCTURED"]

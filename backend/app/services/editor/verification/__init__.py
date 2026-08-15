@@ -1,14 +1,3 @@
-"""Verification: everything the researcher must be told before accepting an edit.
-
-Each outcome is one of three things, and which one depends on who is entitled to
-decide. A pass found nothing. A warning is a real consequence the researcher may
-accept, named specifically enough to be worth acknowledging. A blocker is
-something the system will not do whatever the researcher says, because agreeing
-would require already knowing the thing the check exists to establish.
-
-The checks live one family per module; this runs them in order and collects the
-result."""
-
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
@@ -57,14 +46,6 @@ def verify(
     llm: StructuredLLM | None = None,
     deadline: Deadline | None = None,
 ) -> VerificationResult:
-    """Apply the full policy to one candidate.
-
-    ``session``, ``llm`` and ``deadline`` are optional because the structural half
-    of the policy is pure and must stay runnable without either. When they are
-    absent the semantic attachment check reports ``NOT_RUN`` rather than passing
-    silently: a check that could not run is never recorded as a check that found
-    nothing.
-    """
 
     content_hash = canonical_sha256(
         {

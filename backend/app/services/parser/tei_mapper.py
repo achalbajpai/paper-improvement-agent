@@ -1,25 +1,3 @@
-"""TEI to the manuscript AST.
-
-Everything this module does was decided *after* reading the TEI this GROBID build
-actually emits, not from the TEI specification. Three
-observations shape the whole file:
-
-* A multi-reference marker such as ``[35, 2, 5]`` arrives as three sibling
-  ``<ref>`` elements whose text carries the punctuation (``[35,``, ``2,``, ``5]``)
-  and whose tails between them are **empty**. Empty-tail adjacency is therefore
-  the clustering signal -- observed, not guessed.
-* In author-year papers the opening bracket and part of the author list sit in
-  the *preceding text*, not inside the ref: ``(Dai and <ref>Le, 2015;</ref>``.
-  Leaving that behind would export ``(Dai and (Le, 2015)``, so the opener is
-  absorbed into the marker under tight guards.
-* ``target="#b12"`` is an **XML-ID**, resolved by lookup. ``bibliography_order``
-  is derived independently from ``listBibl`` position, so the postvalidator has a
-  second, unrelated signal to check linkage against. If both came from the same
-  string, the evaluation would be measuring nothing.
-
-Pure: takes a parsed tree, returns models. No network, no database, no files.
-"""
-
 from __future__ import annotations
 
 import re
@@ -68,13 +46,6 @@ from app.services.parser.xml_safety import NS, local_name, text_of
 
 
 class CitationFamily(StrEnum):
-    """Which citation system the manuscript uses.
-
-    Detected from the markers themselves rather than assumed, because it gates
-    two operations that are unsafe in the wrong family: numeric range expansion,
-    and treating stray text inside a marker as recoverable author debris.
-    """
-
     NUMERIC = "NUMERIC"
     AUTHOR_YEAR = "AUTHOR_YEAR"
     UNKNOWN = "UNKNOWN"
@@ -133,14 +104,6 @@ _MAX_RANGE_SPAN = 30
 
 @dataclass(frozen=True)
 class LinkageEvidence:
-    """One item's linkage, with the evidence needed to check it independently.
-
-    The marker fragment and the resolved reference come from different places --
-    the fragment from the ref's own text, the reference from an XML-ID lookup
-    whose ordering came from ``listBibl`` position. The postvalidator compares
-    them precisely because neither was computed from the other.
-    """
-
     citation_id: str
     item_index: int
     marker_fragment: str
@@ -172,7 +135,6 @@ class MappedDocument:
 
 
 def map_tei(root: etree._Element) -> MappedDocument:
-    """Build a Document from a parsed TEI tree."""
     diagnostics = MappingDiagnostics()
     references, by_xml_id, by_order = _map_references(root, diagnostics)
     state = _MapperState(
@@ -280,12 +242,6 @@ def _abstract(root: etree._Element) -> str:
 
 
 def _authors(root: etree._Element) -> tuple[Author, ...]:
-    """Map article authors, not bibliography authors.
-
-    Depending on the GROBID output and the source PDF, the article header
-    authors appear either in ``titleStmt`` or in the normalized analytic
-    record under ``sourceDesc``. The bibliography is deliberately excluded.
-    """
     candidates = root.findall(".//tei:fileDesc/tei:titleStmt/tei:author", namespaces=NS)
     if not candidates:
         candidates = root.findall(
@@ -435,11 +391,6 @@ def _map_paragraph(
 
 
 def _inline_text(child: etree._Element) -> str:
-    """Non-citation inline content, rendered as prose.
-
-    Cross-references (``see Fig. 3``, ``Table 2``) are text to a reader and text
-    to an editor; modelling them would add a node type no supported edit touches.
-    """
     return text_of(child)
 
 
@@ -502,19 +453,12 @@ def _map_cluster(
 
 
 def _fragments_for(items: list[CitationItem], fragments: list[str]) -> list[str]:
-    """Pad fragments to match items, which range expansion can lengthen."""
     if len(fragments) >= len(items):
         return fragments[: len(items)]
     return fragments + [""] * (len(items) - len(fragments))
 
 
 def _join_fragments(refs: list[etree._Element], fragments: list[str]) -> str:
-    """Reassemble the marker the reader saw.
-
-    GROBID drops the space after an intra-cluster comma (``[35,`` + ``2,``), so a
-    separator is restored where the previous fragment ended on one. Any non-empty
-    tail between refs is used verbatim in preference to guessing.
-    """
     parts: list[str] = []
     for position, fragment in enumerate(fragments):
         if position > 0:
@@ -528,14 +472,6 @@ def _join_fragments(refs: list[etree._Element], fragments: list[str]) -> str:
 
 
 def _absorb_opener(pending: list[str], marker: str, state: _MapperState) -> tuple[str, str]:
-    """Pull an unclosed ``(`` or ``[`` out of the preceding prose into the marker.
-
-    Author-year TEI puts the opening bracket, and sometimes part of the author
-    list, outside the ref: ``(Dai and <ref>Le, 2015;</ref>``. Left in the prose it
-    would export as ``(Dai and (Le, 2015)``. The guards are deliberately narrow --
-    the marker must close the bracket, and the absorbed span must be short and
-    contain no sentence terminator -- because over-absorbing eats real prose.
-    """
     prose = "".join(pending)
     match = _ABSORB_TAIL.search(prose)
     if not match:
@@ -603,14 +539,6 @@ def _expand_range(
     mode: CitationMode,
     state: _MapperState,
 ) -> list[CitationItem]:
-    """Turn ``[7-10]`` into the works it stands for, or refuse.
-
-    Only attempted when the numeric family is confirmed, when the fragment's
-    first number agrees with the reference the XML-ID resolved to, and when every
-    interior position exists in the bibliography. Any failure returns nothing and
-    leaves the single linked item alone: an over-eager expansion fabricates
-    citations the author never made.
-    """
     if state.family is not CitationFamily.NUMERIC or record is None:
         return []
     match = _RANGE.match(fragment.strip())
@@ -639,13 +567,6 @@ def _apply_modifiers(
     status: SemanticParseStatus,
     state: _MapperState,
 ) -> SemanticParseStatus:
-    """Attach locators and prefixes, or admit that one was seen and not attached.
-
-    A modifier that is seen and silently discarded changes the author's meaning
-    at export -- ``(Smith 2021, p. 14)`` becomes ``(Smith 2021)``. So an
-    unattributable modifier downgrades the occurrence to PARTIAL_MODIFIERS, which
-    makes it non-exportable at fidelity rather than quietly lossy.
-    """
     if status is SemanticParseStatus.RAW_ONLY or not items:
         return status
 
@@ -686,13 +607,6 @@ def _apply_modifiers(
 
 
 def _map_floating_blocks(root: etree._Element, state: _MapperState) -> list[str]:
-    """Blocks GROBID emitted at body level, outside any section.
-
-    GROBID hoists floats out of the text flow, so their position relative to the
-    prose is simply not in the TEI. They are recorded here and emitted at the end
-    of the export -- exactly where the source put them -- rather than being
-    inserted at a guessed location or dropped.
-    """
     body = root.find(".//tei:text/tei:body", namespaces=NS)
     if body is None:
         return []
@@ -757,7 +671,6 @@ def _block_kind(element: etree._Element) -> BlockKind:
 
 
 def _source_boxes(element: etree._Element) -> tuple[SourceBox, ...]:
-    """Parse GROBID's ``page,x,y,width,height`` coordinate list safely."""
     raw_values: list[str] = []
     element_coords = element.get("coords")
     if element_coords:

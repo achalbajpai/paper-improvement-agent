@@ -1,15 +1,3 @@
-"""The manuscript AST.
-
-Hybrid by design: prose is structured down to the inline level so it can be
-edited and diffed, while non-prose blocks are preserved whole and referenced by
-id. Trying to model a table's semantics would be a project of its own and would
-buy nothing, since no supported edit modifies one.
-
-Citations and blocks live in registries keyed by id rather than inline. That is
-what makes protected-token substitution, delta computation, and the export
-equality check operate on identity instead of on position in a string.
-"""
-
 from __future__ import annotations
 
 import re
@@ -30,8 +18,6 @@ class TextRun(BaseModel):
 
 
 class CitationRef(BaseModel):
-    """A pointer into ``Document.citations``. The occurrence itself lives there."""
-
     model_config = ConfigDict(frozen=True)
     kind: Literal["citation"] = "citation"
     citation_id: str
@@ -41,13 +27,6 @@ InlineNode = TextRun | CitationRef
 
 
 class Author(BaseModel):
-    """One manuscript author recovered from the paper header.
-
-    GROBID exposes authors as structured ``persName`` elements. Keeping the
-    display name in the document snapshot means export does not have to infer
-    authors from the bibliography (which would be both incomplete and unsafe).
-    """
-
     model_config = ConfigDict(frozen=True)
 
     name: str
@@ -66,19 +45,6 @@ class Paragraph(BaseModel):
 
     @property
     def text(self) -> str:
-        """Prose only, with citation markers omitted.
-
-        This is what a segmenter, a claim extractor, or a word count sees.
-        Citations are atomised separately so a marker can never be split across
-        two sentences.
-
-        Removing a marker leaves the space that sat before it, so ``as shown [1].``
-        would otherwise read as ``as shown .`` -- which counts as an extra word,
-        and makes adding a citation look like a prose change in the diff even
-        though not one character of prose moved. The gap is closed here, at the
-        single point where prose is defined, rather than by every caller
-        remembering to.
-        """
         joined = "".join(node.text for node in self.inlines if isinstance(node, TextRun))
         return _SPACE_BEFORE_PUNCTUATION.sub(r"\1", joined)
 
@@ -91,8 +57,6 @@ class Paragraph(BaseModel):
 
 
 class BlockRef(BaseModel):
-    """A pointer into ``Document.blocks``, holding the block's position in flow."""
-
     model_config = ConfigDict(frozen=True)
     kind: Literal["block"] = "block"
     block_id: str
@@ -119,13 +83,6 @@ class Section(BaseModel):
 
 
 class Document(BaseModel):
-    """A complete manuscript snapshot.
-
-    Immutable. An edit produces a new Document; it never mutates this one, which
-    is what lets the DeltaEngine diff before against after independently of
-    whatever the editing code believed it did.
-    """
-
     model_config = ConfigDict(frozen=True)
 
     title: str = ""
@@ -171,12 +128,6 @@ class Document(BaseModel):
         return sum(section.word_count() for section in self.sections)
 
     def cited_reference_ids(self) -> set[str]:
-        """References with at least one live occurrence.
-
-        The complement is what targeted ``nocite`` has to retain so that an edit
-        which removes the last citation of a work does not delete that work from
-        the author's bibliography.
-        """
         cited: set[str] = set()
         for paragraph in self.paragraphs():
             for citation_id in paragraph.citation_ids:
@@ -189,14 +140,6 @@ class Document(BaseModel):
         return tuple(block.id for block in self.blocks.values() if block.blocks_fidelity_export)
 
     def non_exportable_citation_ids(self) -> tuple[str, ...]:
-        """Markers that cannot be re-rendered without losing something.
-
-        Two distinct causes, kept apart by ``citations_by_parse_status`` because
-        they are different losses: a marker whose modifiers were only partly
-        parsed may drop a page number, while a raw-only marker has no structure
-        at all and renders as the literal text the author wrote. Reporting them
-        under one label would misdescribe whichever one is not the majority.
-        """
         return tuple(node.id for node in self.citations.values() if not node.fidelity_exportable)
 
     def citations_by_parse_status(self, status: SemanticParseStatus) -> tuple[str, ...]:
@@ -205,10 +148,4 @@ class Document(BaseModel):
         )
 
     def content_hash(self) -> str:
-        """Identity of this snapshot's content.
-
-        Covers prose, citation structure, blocks, and references together,
-        because an edit that changed only a citation's locator has changed the
-        manuscript just as surely as one that reworded a sentence.
-        """
         return canonical_sha256(self)

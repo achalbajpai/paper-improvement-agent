@@ -1,5 +1,3 @@
-"""FastAPI application and database startup."""
-
 from __future__ import annotations
 
 import shutil
@@ -50,7 +48,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 class PublicFastAPI(FastAPI):
     def openapi(self) -> dict[str, Any]:
-        """Describe the validation envelope the application actually returns."""
         if self.openapi_schema is not None:
             return self.openapi_schema
         document = get_openapi(
@@ -109,12 +106,6 @@ async def handle_app_error(request: Request, exc: AppError) -> JSONResponse:
 
 @app.exception_handler(RequestValidationError)
 async def handle_request_validation(request: Request, exc: RequestValidationError) -> JSONResponse:
-    """Keep framework validation inside the public error contract.
-
-    Validation details can contain uploaded filenames or request text, so the
-    response and logs report only the failing field locations and never echo
-    the rejected input.
-    """
     locations = [".".join(str(part) for part in error["loc"]) for error in exc.errors()]
     logger.warning("malformed request on %s: %s", request.url.path, locations)
     return JSONResponse(
@@ -151,19 +142,6 @@ def health() -> dict[str, str]:
 
 @app.get("/ready", tags=["meta"])
 def ready(response: Response) -> dict[str, object]:
-    """What this instance can actually do right now.
-
-    ``status`` is derived rather than asserted. A readiness probe that returns
-    ``ok`` with a dead database is not a probe, and Compose is configured to
-    gate on this endpoint -- so a hard-coded ``ok`` would report every instance
-    healthy including the ones that are not.
-
-    The dependencies are reported separately because they fail separately, and
-    each disables a different part of the product: without Pandoc nothing
-    exports, without GROBID nothing parses, without a model there is no review
-    or editing. The UI reads these to disable what cannot work rather than
-    letting a researcher discover it by clicking.
-    """
     settings = get_settings()
     checks = {
         "database": check_database(),

@@ -1,11 +1,3 @@
-"""Layering, enforced by reading the real import graph.
-
-The plan claims purity per module rather than per package, and ruff's banned-api
-is global-only, so it cannot express "domain/ may not import providers/ but
-api/ may". This test states the rule precisely and checks it, which is stronger
-than a lint comment and honest about what actually runs.
-"""
-
 from __future__ import annotations
 
 import ast
@@ -78,11 +70,6 @@ def test_application_never_imports_test_doubles() -> None:
 
 
 def test_api_contains_no_workflow_implementations() -> None:
-    """api/ is HTTP translation only.
-
-    A route handler that grew a workflow inside it is the boundary erosion this
-    guards against, so handlers stay short and delegate to services/.
-    """
     offenders: list[str] = []
     for path in _python_files(APP / "api"):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -95,11 +82,6 @@ def test_api_contains_no_workflow_implementations() -> None:
 
 
 def test_runtime_invariants_never_use_assert() -> None:
-    """``python -O`` strips assertions.
-
-    The checks that stop an invented citation from reaching a manuscript must not
-    be removable by an interpreter flag, so app/ raises typed errors instead.
-    """
     offenders: list[str] = []
     for path in _python_files(APP):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))

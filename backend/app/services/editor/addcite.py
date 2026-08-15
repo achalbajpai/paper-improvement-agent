@@ -1,44 +1,3 @@
-"""ADD_SUPPORTING_CITATIONS.
-
-The intent that most obviously wants to hallucinate, so it is built so that it
-structurally cannot. **No prose is regenerated.** A model chooses which retrieved
-work supports which sentence; trusted code inserts one token and nothing else,
-and the paragraph is proved unchanged by comparing it with the tokens stripped.
-
-The path, in order, with the reason each step is not optional:
-
- 1. Locate the target section, from the router's validated identifier.
- 2. Segment its paragraphs with the canonical segmenter, so sentence ids mean the
-    same thing here as in the review.
- 3. Ask which sentences make a citable claim, by id.
- 4. Give each claim a budget: ``max_citations_per_claim`` minus what it already
-    carries. "Add more citations to the introduction" is a meaningful request
-    about a claim that already has one narrow source, so a claim is not skipped
-    for being cited -- only for being at its cap.
- 5. Build a search query from the claim's topic, not from its prose, so the
-    manuscript is not posted to a provider verbatim.
- 6. Search **both** providers, per claim.
- 7. No candidates is a real answer: raise ``NO_RESULTS``, which becomes a FAILED
-    proposal row rather than a silently empty edit.
- 8. Rerank each claim's candidates against **that claim**, by id. Ranking a
-    pooled set against one claim's text discards a good source for the third
-    sentence because it is irrelevant to the first.
- 9. Ask for (candidate, sentence) attachments, by id, then enforce the budget
-    and one-use-per-work in code. A cap stated only in a prompt is a request.
-10. Validate every returned id against the allowlist; an unknown one raises.
-11. Snapshot the chosen work, so the evidence behind the suggestion is frozen.
-12. Check support against the snapshotted abstract. A work that contradicts the
-    sentence is dropped here and never offered.
-13. Require complete CSL. A citation a reader cannot look up is a gesture at a
-    citation, not a citation.
-14. Mint ``ref_added_NNN`` with ``csl.id == id``, the invariant that otherwise
-    silently deletes bibliography entries at export.
-15. Decide the marker's position deterministically, joining an adjacent
-    occurrence rather than opening a second bracket.
-16. Insert the token; assert the prose is byte-identical without it.
-17. Compute the delta from the two documents, as always, independently.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
@@ -71,19 +30,11 @@ INSERTABLE_VERDICTS = frozenset({SupportVerdict.SUPPORTED, SupportVerdict.PARTIA
 
 
 class SnapshotStore(Protocol):
-    """The part of ``SourceStore`` this path needs.
-
-    Narrow on purpose: the adder freezes the evidence behind a suggestion and
-    does nothing else with the database.
-    """
-
     def snapshot(self, work: ProviderWork) -> str: ...
 
 
 @dataclass(frozen=True)
 class AddedCitation:
-    """One suggestion that survived every check."""
-
     paragraph_id: str
     sentence_id: str
     citation_id: str
@@ -105,8 +56,6 @@ class AddCitationsResult:
 
 
 class CitationAdder:
-    """Runs the insertion path over one section."""
-
     def __init__(
         self,
         *,
@@ -190,13 +139,6 @@ class CitationAdder:
     def _citable_sentences(
         self, sentences: tuple[Sentence, ...], deadline: Deadline
     ) -> list[tuple[Sentence, str]]:
-        """Sentences that make a claim and have room for another source.
-
-        Not "sentences with no citation". A claim supported by one narrow work
-        can reasonably want a second, and refusing that would make "add more
-        citations to the introduction" return nothing on any introduction that
-        was already cited at all -- which is most of them.
-        """
         room = [sentence for sentence in sentences if _capacity(sentence) > 0]
         if not room:
             return []
@@ -219,20 +161,6 @@ class CitationAdder:
     def _retrieve(
         self, document: Document, targets: list[tuple[Sentence, str]], deadline: Deadline
     ) -> list[Candidate]:
-        """Search on the model's topic phrase, never on the manuscript prose.
-
-        Posting a sentence of an unpublished manuscript to two third-party APIs
-        is not something a researcher would expect from "add some citations", so
-        the query is the short topic phrase the extractor produced instead.
-
-        Each claim is searched and ranked on its own, and only then are the
-        results merged: ranking one pooled set against a single claim's text
-        would discard a work retrieved for the third sentence because it does
-        not suit the first. Merging is on provider identity, and ``cand_NNN``
-        ids are re-issued afterwards -- merging as results arrive would let two
-        different works share an id and silently swap places when the model
-        chose one.
-        """
         cited = BibliographyIndex.of(document)
         found: dict[str, Candidate] = {}
 
@@ -256,7 +184,6 @@ class CitationAdder:
     def _rank_for(
         self, sentence: Sentence, candidates: list[Candidate], deadline: Deadline
     ) -> list[Candidate]:
-        """Rank one claim's candidates against that claim."""
         if not candidates:
             return []
 
@@ -282,14 +209,6 @@ class CitationAdder:
         *,
         limit: int,
     ) -> list[tuple[Sentence, Candidate, str]]:
-        """Attach candidates to claims, then enforce the limits in code.
-
-        The prompt asks for at most one work per claim's remaining budget, but a
-        limit stated in a prompt is a request. The budget, and the rule that one
-        retrieved work is offered once rather than attached to three sentences
-        that happen to be about the same topic, are applied here to the response
-        the model actually returned.
-        """
         if not candidates or limit <= 0:
             return []
 
@@ -403,11 +322,6 @@ class CitationAdder:
     def _vet(
         self, candidate: Candidate, sentence: Sentence, deadline: Deadline
     ) -> tuple[str, SupportVerdict]:
-        """Does this abstract actually support the sentence it was chosen for?
-
-        The same grounded check the review uses, applied before insertion rather
-        than after, so a contradicting work is never offered at all.
-        """
         record_id = self.sources.snapshot(candidate.work)
         if not candidate.work.has_abstract or candidate.work.abstract is None:
             return record_id, SupportVerdict.EVIDENCE_UNAVAILABLE
@@ -438,12 +352,6 @@ class CitationAdder:
 
 
 def _mint_reference(candidate: Candidate, ordinal: int, source_record_id: str) -> ReferenceRecord:
-    """A bibliography entry for a work this system found, not one the author cited.
-
-    ``csl.id == id`` is set here rather than assumed: the export drops any entry
-    whose CSL id disagrees with its record id, silently, and an added reference is
-    the only kind minted at runtime.
-    """
     reference_id = f"ref_added_{ordinal:03d}"
     return ReferenceRecord(
         id=reference_id,
@@ -456,7 +364,6 @@ def _mint_reference(candidate: Candidate, ordinal: int, source_record_id: str) -
 
 
 def _next_added_ordinal(document: Document) -> int:
-    """Continue the added-id sequence rather than restarting it each edit."""
     used = [
         int(identifier.rsplit("_", 1)[-1])
         for identifier in [*document.citations, *(r.id for r in document.references)]
@@ -466,11 +373,4 @@ def _next_added_ordinal(document: Document) -> int:
 
 
 def _capacity(sentence: Sentence) -> int:
-    """How many more citations this claim may take.
-
-    A cap rather than a ban. One source can be narrow, dated, or tangential, and
-    a researcher asking for more citations on an already-cited introduction is
-    asking a reasonable question -- but a sentence trailing five system-added
-    markers is not an improvement either.
-    """
     return max(0, get_settings().max_citations_per_claim - len(sentence.citation_ids))

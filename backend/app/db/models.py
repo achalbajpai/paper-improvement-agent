@@ -1,24 +1,3 @@
-"""Persisted tables.
-
-Three structural decisions carry most of the weight.
-
-**Idempotency.** Every mutating POST takes an ``Idempotency-Key``, recorded in
-``operation_requests``. The unique index is declared ``NULLS NOT DISTINCT``
-(applied in session.py, since SQLAlchemy's DDL cannot express it) because
-PostgreSQL's default treats every NULL as distinct: global-scope rows have
-``scope_id IS NULL``, so under the default they would never collide and the
-constraint would silently permit unlimited duplicate uploads -- defeating
-idempotency on the one endpoint it was introduced for.
-
-**Cascade.** Deleting a paper must remove everything derived from it, including
-provider snapshots and retrieval queries, both of which are manuscript-derived.
-The cascade is declared at the database level so that a code path that forgets
-cannot leave manuscript-derived rows behind.
-
-**One revision per proposal.** ``UNIQUE(accepted_proposal_id)`` makes double
-acceptance a database error rather than a race the application has to win.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -49,14 +28,6 @@ JSONType = JSON().with_variant(JSONB(), "postgresql")
 def _revision_belongs_to_paper(
     name: str, *, column: str = "revision_id"
 ) -> tuple[ForeignKeyConstraint, ...]:
-    """A composite foreign key, so a row cannot cite another paper's revision.
-
-    A plain ``revision_id`` foreign key would prove the revision exists; it would
-    not prove it belongs to the paper this row is about. Pointing at (paper_id,
-    id) together makes a cross-paper association unrepresentable rather than
-    merely unlikely -- which matters because these ids travel through URLs and
-    request bodies.
-    """
     return (
         ForeignKeyConstraint(
             ["paper_id", column],
@@ -122,8 +93,6 @@ class Paper(Base, TimestampMixin):
 
 
 class DocumentRevision(Base, TimestampMixin):
-    """An immutable manuscript snapshot. Revision 1 is the parse."""
-
     __tablename__ = "document_revisions"
     __table_args__ = (
         UniqueConstraint("accepted_proposal_id", name="uq_revision_accepted_proposal"),
@@ -159,13 +128,6 @@ class DocumentRevision(Base, TimestampMixin):
 
 
 class SourceRecord(Base, TimestampMixin):
-    """A provider record, snapshotted at the moment it was used.
-
-    Evidence anchors point into this text. If the abstract were re-fetched at
-    display time, a provider edit would silently move every span offset and the
-    quoted evidence would drift away from what the verdict was actually about.
-    """
-
     __tablename__ = "source_records"
     __table_args__ = (
         UniqueConstraint("paper_id", "id", name="uq_source_record_paper"),
@@ -193,18 +155,6 @@ class SourceRecord(Base, TimestampMixin):
 
 
 class ReferenceResolution(Base, TimestampMixin):
-    """What a review concluded about one bibliography entry's identity.
-
-    Resolution is not part of the manuscript, so it cannot live on the revision:
-    a revision is content-addressed and the review's own claim anchors hash against
-    it. It is also not derivable from ``source_records``, which are keyed by
-    provider identity rather than by the reference they resolved. So it is recorded
-    here, keyed by reference, and joined when the bibliography is presented.
-
-    One row per reference: a later review supersedes an earlier verdict about the
-    same entry rather than accumulating alternatives.
-    """
-
     __tablename__ = "reference_resolutions"
     __table_args__ = (UniqueConstraint("paper_id", "reference_id", name="uq_reference_resolution"),)
 
@@ -221,12 +171,6 @@ class ReferenceResolution(Base, TimestampMixin):
 
 
 class RetrievalAttempt(Base, TimestampMixin):
-    """One provider call, recorded with its outcome.
-
-    The query text is manuscript-derived, so it lives here -- scoped to the paper
-    and cascading on delete -- and never in logs or telemetry.
-    """
-
     __tablename__ = "retrieval_attempts"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -296,14 +240,6 @@ class ReviewFindingRow(Base, TimestampMixin):
 
 
 class EditProposal(Base, TimestampMixin):
-    """One editing command and its outcome.
-
-    The row is created *before* the work runs, so a command that produces
-    nothing still leaves a record saying so. Retrieval finding no candidates
-    lands here as FAILED with no candidate snapshot rather than as a request that
-    silently disappeared.
-    """
-
     __tablename__ = "edit_proposals"
     __table_args__ = (
         *_revision_belongs_to_paper("fk_edit_proposal_base_revision", column="base_revision_id"),
@@ -337,8 +273,6 @@ class EditProposal(Base, TimestampMixin):
 
 
 class VerificationCheckRow(Base, TimestampMixin):
-    """Individual check outcomes, kept so a stored verdict is traceable."""
-
     __tablename__ = "verification_checks"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -374,12 +308,6 @@ class ExportRun(Base, TimestampMixin):
 
 
 class OperationRequest(Base, TimestampMixin):
-    """The idempotency ledger for every mutating POST.
-
-    ``scope_id`` is NULL for global operations such as upload, which is exactly
-    why the unique index must be NULLS NOT DISTINCT. See the module docstring.
-    """
-
     __tablename__ = "operation_requests"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)

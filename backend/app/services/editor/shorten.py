@@ -1,43 +1,3 @@
-"""SHORTEN_SECTION.
-
-The safety spine, in order, per paragraph:
-
-1. Tokenise, so citations reach the model as opaque ids rather than as rendered
-   labels a rewrite could renumber.
-2. Rewrite one paragraph. Never a section: a model that can restructure a section
-   can silently drop a paragraph, and paragraph identity is what every anchor and
-   finding depends on.
-3. Audit the tokens. Duplicated, invented, or mangled is a typed error.
-4. Check semantic novelty, because tokens cannot see an invented statistic. "may
-   reduce latency" becoming "reduces latency by 30%" leaves every token intact
-   and the manuscript false.
-5. Only then stage the paragraph on the builder.
-
-A paragraph that fails novelty keeps its original wording and is reported; the
-rest of the section still goes through. The stricter rule -- discard the whole
-section for one bad paragraph -- made shortening an introduction fail almost
-every time, and the researcher reads a per-paragraph diff anyway, so nothing
-lands unreviewed either way. Only when *every* paragraph is refused does the
-command fail outright, because then there is no edit left to show.
-
-``shorten_extractive_only`` replaces the rewrite with sentence deletion, dropping
-sentences from the end until the paragraph hits its word target. It is a fallback,
-not a mode worth defaulting to: no model is called at all, so the result is
-truncation rather than shortening -- it will cut a sentence that introduces the
-list below it as readily as a redundant aside. It exists for a model that cannot
-be trusted to rewrite, and it is off by default.
-
-Step 4 is the safeguard that makes rewriting acceptable, and it is the only one
-here that is itself a model judgement, so its limits are worth stating. On at
-least one adversarial pair it missed a dropped qualifier:
-
-    "In mice, the treatment improved survival over a twelve week period."
-    -> "The treatment improved survival."
-
-Tokens cannot see that; the researcher reading the diff can, and the diff is the
-last gate before anything is applied. That is the trade this feature makes.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -80,7 +40,6 @@ def shorten_section(
     ratio: float | None = None,
     paragraph_id: str | None = None,
 ) -> ShortenResult:
-    """Shorten one section, or one paragraph of it, or raise without staging."""
     section = document.section(section_id)
     if section is None:
         raise CandidateConstructionError(
@@ -181,12 +140,6 @@ def _check_novelty(
     deadline: Deadline,
     paragraph_id: str,
 ) -> VerificationCheck:
-    """The check protected tokens cannot perform.
-
-    Raises rather than warning. A researcher cannot be asked to acknowledge a
-    fabricated statistic, because acknowledging it would require already knowing
-    it was fabricated -- which is the thing this check exists to establish.
-    """
     prompt = novelty_prompt.build_prompt(detokenize(before), detokenize(after))
     result = llm.complete_structured(
         prompt, novelty_prompt.NoveltyResponse, remaining_seconds=deadline.remaining()
@@ -210,13 +163,6 @@ def _check_novelty(
 
 
 def _extractive_shorten(tokenised: str, target_words: int) -> str:
-    """Shorten by deleting whole sentences, inventing nothing.
-
-    Sentences are dropped from the end, which preserves the paragraph's opening
-    claim and its topic sentence. Sentences carrying citations are kept: dropping
-    them would remove the author's support, and this mode exists precisely
-    because the safety net that would have caught a bad rewrite is unavailable.
-    """
     spans = segment_text(tokenised)
     if len(spans) <= 1:
         return tokenised
@@ -236,7 +182,6 @@ def _extractive_shorten(tokenised: str, target_words: int) -> str:
 
 
 def target_shortfall(plan: ShortenPlan, delta: ComputedEditDelta) -> float:
-    """How much of the requested reduction was actually achieved, as a fraction."""
     requested = plan.words_before - plan.words_target
     if requested <= 0:
         return 1.0

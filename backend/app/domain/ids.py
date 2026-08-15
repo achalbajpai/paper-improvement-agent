@@ -1,17 +1,3 @@
-"""Identifier generation.
-
-Every identifier is generated in one place, from document position, and is
-stable across a parse of the same document. Two properties matter:
-
-* An identifier encodes its **origin**. ``cite_imported_012`` came from the
-  uploaded PDF; ``cite_added_003`` was introduced by an accepted edit. That
-  distinction has to survive into the export IR and the diff, because "the agent
-  added this citation" is the single most important thing a reviewer needs to
-  see, and reconstructing it from a join at render time is how it gets lost.
-* An identifier is never derived from user-supplied text, so it cannot collide
-  with, or be forged by, manuscript content.
-"""
-
 from __future__ import annotations
 
 import re
@@ -75,7 +61,6 @@ def source_record_id(ordinal: int) -> str:
 
 
 def origin_of(identifier: str) -> Origin | None:
-    """Read origin straight off the identifier, with no join."""
     if "_imported_" in identifier:
         return Origin.IMPORTED
     if "_added_" in identifier:

@@ -1,14 +1,3 @@
-"""Re-verifying a reworded claim against every source it cites.
-
-``[A, B]`` is two assertions of support. Checking only the first lets a rewrite
-through that the second now contradicts, which is precisely the failure this
-check exists to catch -- and it fails silently, reported as a pass.
-
-The snapshot lookup is tested here too, because both defects live on the same
-path: a verdict is only meaningful if the abstract it was made against belongs
-to the paper being edited.
-"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -38,7 +27,6 @@ ABSTRACTS = {
 
 
 def manuscript() -> Document:
-    """One paragraph, one occurrence, two references. The smallest cluster."""
     return Document(
         title="A paper",
         sections=(
@@ -110,7 +98,6 @@ def snapshots(db: Session, paper_id: str, *, ids: tuple[str, ...] = ("src_a", "s
 
 
 def scripted(verdicts: dict[str, str]) -> ScriptedLLM:
-    """Answers per source, chosen by which abstract the prompt quotes."""
 
     def support(prompt: Prompt) -> dict[str, Any]:
         for record_id, abstract in ABSTRACTS.items():
@@ -162,12 +149,6 @@ def contradicted(result: Any) -> bool:
 def test_a_cluster_is_blocked_if_any_reference_contradicts(
     db: Session, stored_paper: Paper, verdicts: dict[str, str], expected: bool
 ) -> None:
-    """Order must not decide the outcome.
-
-    Checking `reference_ids[0]` passes the first case and fails the second, so
-    both orderings are asserted: a defect that depends on which reference the
-    author happened to list first is not one anybody would find by hand.
-    """
     snapshots(db, stored_paper.id)
 
     result = run(db, stored_paper.id, verdicts)
@@ -179,7 +160,6 @@ def test_a_cluster_is_blocked_if_any_reference_contradicts(
 def test_every_reference_in_the_cluster_is_actually_consulted(
     db: Session, stored_paper: Paper
 ) -> None:
-    """The guard against a fix that passes the parametrised cases by luck."""
     snapshots(db, stored_paper.id)
     seen: list[str] = []
 
@@ -209,7 +189,6 @@ def test_every_reference_in_the_cluster_is_actually_consulted(
 def test_a_reference_with_no_snapshot_does_not_pass_as_supported(
     db: Session, stored_paper: Paper
 ) -> None:
-    """Half the cluster unverifiable is not a cluster that was verified."""
     snapshots(db, stored_paper.id, ids=("src_a",))
 
     result = run(db, stored_paper.id, {"src_a": "SUPPORTED", "src_b": "SUPPORTED"})
@@ -221,12 +200,6 @@ def test_a_reference_with_no_snapshot_does_not_pass_as_supported(
 def test_a_snapshot_belonging_to_another_paper_is_never_used(
     db: Session, stored_paper: Paper
 ) -> None:
-    """Source records are per-paper.
-
-    Matching one by DOI or external id across the whole table can return an
-    abstract snapshotted while reviewing somebody else's manuscript -- a verdict
-    about the wrong text, reported as if it were about this one.
-    """
     other = Paper(
         id=new_id("paper"),
         storage_id=new_id("store"),

@@ -1,11 +1,3 @@
-"""Export tests: the IR's shape, the retention policy, and a real render.
-
-The render tests invoke the Pandoc in the ``api`` image rather than mocking it.
-Mocking here would test that we can call a function, when the question the export
-raises is whether *this* Pandoc, with *these* vendored styles, produces a
-manuscript carrying the citations the AST holds.
-"""
-
 from __future__ import annotations
 
 import json
@@ -43,7 +35,6 @@ from tests.conftest import validated
 
 
 def budget() -> Deadline:
-    """A fresh budget per call: a module-level one would expire mid-suite."""
     return Deadline.after("export", 180.0)
 
 
@@ -58,21 +49,10 @@ def corpus() -> Document:
 
 
 def exportable() -> Document:
-    """The acceptance paper: the one corpus paper with no unrenderable blocks.
-
-    A_numeric declares two figures whose images GROBID never produced, so it
-    blocks a fidelity export by design and cannot be the paper the walkthrough
-    uses. That is measured, not assumed -- see the blocker test below.
-    """
     return validated("C_numeric_dense").document
 
 
 def test_every_paragraph_and_occurrence_carries_its_id() -> None:
-    """The wrappers are how a rendered element is traced back to the AST.
-
-    Without them the export is a document that merely resembles the manuscript;
-    with them, each paragraph and each marker is identifiable as a specific one.
-    """
     document = exportable()
     ir = pandoc_ir.build(document)
     blob = json.dumps(ir)
@@ -91,11 +71,6 @@ def test_every_paragraph_and_occurrence_carries_its_id() -> None:
 
 
 def test_a_multi_item_marker_is_one_cite_not_two() -> None:
-    """``[2, 5]`` must stay one bracket.
-
-    Two ``Cite`` elements render as ``[2][5]``, which is not what the author
-    wrote and not what any style produces.
-    """
     document = corpus().model_copy(
         update={
             "citations": {
@@ -131,10 +106,6 @@ def test_locators_travel_on_the_encoded_suffix() -> None:
 
 
 def test_an_unlinked_marker_keeps_its_literal_text() -> None:
-    """A marker with no bibliography entry is printed, not deleted.
-
-    Dropping it would edit the manuscript, and the author wrote that bracket.
-    """
     node = CitationNode(id="c9", items=(CitationItem(reference_id=None),), raw_marker="[42]")
     rendered = pandoc_ir._cite(node)
     assert "Cite" not in json.dumps(rendered)
@@ -142,7 +113,6 @@ def test_an_unlinked_marker_keeps_its_literal_text() -> None:
 
 
 def test_an_original_reference_that_falls_out_of_use_is_retained() -> None:
-    """Editing must not delete source material as a side effect."""
     document = exportable()
     cited = document.cited_reference_ids()
     original = frozenset(reference.id for reference in document.references)
@@ -157,11 +127,6 @@ def test_an_original_reference_that_falls_out_of_use_is_retained() -> None:
 
 
 def test_an_added_reference_that_falls_out_of_use_is_not_retained() -> None:
-    """``@*`` would keep it; the targeted form deliberately does not.
-
-    A bibliography entry for a work the manuscript never cites is a claim the
-    researcher did not make.
-    """
     document = exportable()
     cited = document.cited_reference_ids()
     orphan = next(reference.id for reference in document.references if reference.id not in cited)
@@ -178,11 +143,6 @@ def test_an_added_reference_that_falls_out_of_use_is_not_retained() -> None:
 
 
 def test_csl_json_uses_csl_field_names() -> None:
-    """``container-title``, not ``container_title``.
-
-    citeproc ignores the underscored form silently, dropping the journal name
-    from every entry without erroring.
-    """
     document = exportable()
     built = render_set.build(document, original_reference_ids=frozenset())
     blob = json.dumps(built.csl_json())
@@ -196,7 +156,6 @@ def test_no_style_blocks_export() -> None:
 
 
 def test_a_figure_with_no_image_blocks_a_fidelity_export() -> None:
-    """It cannot be reproduced at all, so it is a blocker rather than a warning."""
     document = exportable()
     block = PreservedBlock(
         id="blk_x",
@@ -214,12 +173,6 @@ def test_a_figure_with_no_image_blocks_a_fidelity_export() -> None:
 
 
 def test_the_corpus_paper_with_missing_figures_really_is_blocked() -> None:
-    """Why the acceptance paper is C and not A, stated as a test.
-
-    A_numeric's two figures have no extractable image, so exporting it would
-    produce a manuscript missing content the author had. The system refuses
-    rather than quietly shipping a paper with holes in it.
-    """
     checks = preflight.check(corpus(), revision_id="rev_1", citation_style=CitationStyle.IEEE)
     assert not checks.can_export
     assert preflight.BLOCK_UNRENDERABLE_BLOCK in {b.code for b in checks.blockers}
@@ -241,12 +194,6 @@ def test_retained_entries_produce_an_acknowledgeable_warning() -> None:
 
 
 def test_partial_modifiers_warn_rather_than_block() -> None:
-    """A marker this parser could not fully structure is a stated loss, not a refusal.
-
-    The content survives; a page number or a reformatting may not. That is a cost
-    a researcher can knowingly accept, which is precisely the difference from a
-    figure whose image does not exist.
-    """
     document = exportable()
     checks = preflight.check(document, revision_id="rev_1", citation_style=CitationStyle.IEEE)
 
@@ -256,13 +203,6 @@ def test_partial_modifiers_warn_rather_than_block() -> None:
 
 
 def test_the_two_kinds_of_unstructured_marker_are_reported_separately() -> None:
-    """They are different losses, and one message for both would misdescribe one.
-
-    A partial-modifier marker may drop a page number from an otherwise normal
-    citation. A raw-only marker was never structured at all and goes out as the
-    literal text the author wrote. This corpus paper has raw-only markers and no
-    partial modifiers, so exactly one of the two messages should appear.
-    """
     document = exportable()
     raw_only = document.citations_by_parse_status(SemanticParseStatus.RAW_ONLY)
     partial = document.citations_by_parse_status(SemanticParseStatus.PARTIAL_MODIFIERS)
@@ -279,7 +219,6 @@ def test_the_two_kinds_of_unstructured_marker_are_reported_separately() -> None:
 
 
 def test_warning_messages_are_grammatical_for_a_single_subject() -> None:
-    """A safety notice that reads as machine-generated invites clicking through."""
     checks = preflight.check(
         exportable(),
         revision_id="rev_1",
@@ -293,7 +232,6 @@ def test_warning_messages_are_grammatical_for_a_single_subject() -> None:
 
 
 def test_warning_ids_are_stable_across_identical_checks() -> None:
-    """Acknowledgement is keyed on the id, so it must not move between calls."""
     first = preflight.check(exportable(), revision_id="rev_1", citation_style=CitationStyle.IEEE)
     second = preflight.check(exportable(), revision_id="rev_1", citation_style=CitationStyle.IEEE)
     assert first.required_warning_ids == second.required_warning_ids
@@ -318,11 +256,6 @@ def test_the_manuscript_renders_through_both_styles(tmp_path: Path, style: Citat
 
 @pandoc_only
 def test_a_retained_entry_appears_in_the_rendered_bibliography(tmp_path: Path) -> None:
-    """The control half of the export contract, run against the real corpus.
-
-    Rendering with the nocite and without it must differ, or the mechanism is
-    coinciding with citeproc's default rather than doing the work.
-    """
     document = exportable()
     built = render_set.build(
         document,
@@ -346,12 +279,6 @@ def test_a_retained_entry_appears_in_the_rendered_bibliography(tmp_path: Path) -
 
 @pandoc_only
 def test_a_tampered_ir_fails_the_signature_check(tmp_path: Path, monkeypatch) -> None:
-    """The check exists to catch a render that lost a citation.
-
-    Simulated by dropping one occurrence from the IR after the AST was read, which
-    is the shape of the failure it must catch: the document rendered is not the
-    document verified.
-    """
     document = exportable()
     built = render_set.build(document, original_reference_ids=frozenset())
     real_build = pandoc_ir.build
@@ -370,7 +297,6 @@ def test_a_tampered_ir_fails_the_signature_check(tmp_path: Path, monkeypatch) ->
 
 @pytest.fixture
 def export_paper(db: Session) -> Paper:
-    """The acceptance paper, parsed and stored, with a style already chosen."""
     document = exportable()
     paper = Paper(
         id=new_id("paper"),
@@ -399,11 +325,6 @@ def export_paper(db: Session) -> Paper:
 
 
 def test_an_unacknowledged_lossy_export_is_refused(db: Session, export_paper: Paper) -> None:
-    """Acknowledgement is a precondition, not a checkbox recorded afterwards.
-
-    This paper has citations whose locators could not be parsed, so its export is
-    known-lossy and the researcher has to say they accept that before it runs.
-    """
     checks = service.preflight(db, export_paper.id)
     assert checks.required_warning_ids
 
@@ -429,11 +350,6 @@ def test_an_acknowledged_export_publishes_every_artifact(db: Session, export_pap
 def test_nothing_is_visible_until_the_whole_export_is_ready(
     db: Session, export_paper: Paper, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A failed export leaves no directory a researcher could download from.
-
-    Publication is one rename after every file exists, so the alternative -- a
-    half-written PDF sitting at the final path -- is not reachable.
-    """
     checks = service.preflight(db, export_paper.id)
     monkeypatch.setattr(
         renderer,
@@ -455,7 +371,6 @@ def test_nothing_is_visible_until_the_whole_export_is_ready(
 
 
 def test_an_unknown_artifact_name_is_refused(db: Session, export_paper: Paper) -> None:
-    """The allowlist is the whole check, so traversal is not a bug class here."""
     run = ExportRun(
         id=new_id("exp"),
         paper_id=export_paper.id,
@@ -502,19 +417,6 @@ def _drop_first_cite(node: object) -> bool:
 def test_the_rendered_output_carries_the_citations_and_the_bibliography(
     tmp_path: Path, style: CitationStyle
 ) -> None:
-    """What the IR signature check cannot prove.
-
-    ``_verify_citations`` round-trips the Pandoc AST through ``--from=json
-    --to=json``, deliberately without ``--citeproc``: citeproc rewrites locators
-    on output, so the rendered form is never parsed back and the comparison is
-    made on the encoded suffix instead. That proves the *input* to citeproc
-    carries the manuscript's citations. It cannot prove that the Markdown, the
-    LaTeX, or the bibliography that came out the other side still do.
-
-    This asserts on the artifacts themselves, in both styles, because a
-    style-specific rendering failure would otherwise show up only in whichever
-    style the walkthrough happened to use.
-    """
     document = exportable()
     built = render_set.build(
         document,
@@ -548,9 +450,6 @@ def test_the_rendered_output_carries_the_citations_and_the_bibliography(
 
 @pandoc_only
 def test_a_style_change_changes_the_rendered_citations(tmp_path: Path) -> None:
-    """The control. Two styles producing identical output would mean the CSL
-    file was never applied, and every per-style assertion above would be
-    passing on the same rendering twice."""
     document = exportable()
     built = render_set.build(
         document,
@@ -569,12 +468,10 @@ def test_a_style_change_changes_the_rendered_citations(tmp_path: Path) -> None:
 
 
 def _fingerprint(text: str) -> str:
-    """Comparable form: citeproc re-wraps lines and normalises punctuation."""
     return re.sub(r"[^a-z0-9]+", " ", text.casefold())
 
 
 def _citation_markers(rendered: str) -> int:
-    """Rendered citations, in either family's shape: ``[1]`` or ``(Author, 2017)``."""
     numeric = len(re.findall(r"(?:\\\[|\[)\d+(?:\\\]|\])", rendered))
     author_year = len(re.findall(r"\(\s*[A-Z][^()]*\d{4}[a-z]?\s*\)", rendered))
     return numeric + author_year

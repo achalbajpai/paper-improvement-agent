@@ -1,10 +1,3 @@
-"""Intent routing: one LLM call, one schema, one versioned prompt.
-
-The router returns a structured intent plus target identifiers, all of which are
-validated server-side against the actual document. An unsupported or ambiguous
-intent never mutates the AST.
-"""
-
 from __future__ import annotations
 
 from enum import StrEnum
@@ -52,14 +45,6 @@ SYSTEM = (
 
 
 def build_prompt(command: str, outline: list[tuple[str, str]], target: str | None = None) -> Prompt:
-    """Route one command, optionally against a target the researcher already chose.
-
-    When ``target`` is present the researcher has pointed at a part of the paper,
-    so the command cannot be ambiguous about where it applies -- only about what
-    it asks for. Saying so in the prompt is what stops the model from returning
-    AMBIGUOUS_INTENT for "shorten it by 20%" and discarding the intent along with
-    the ambiguity it was never asked to resolve.
-    """
     listing = "\n".join(f"{section_id}: {title}" for section_id, title in outline)
     selected = (
         f"{delimit('Already selected by the researcher', target)}\n\n"

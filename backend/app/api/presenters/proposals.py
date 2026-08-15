@@ -1,5 +1,3 @@
-"""Editing proposals: the delta, the scope, and the per-paragraph diffs."""
-
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
@@ -23,12 +21,6 @@ from app.domain.proposal import CandidateRevisionSnapshot, EditScope, ProposalSt
 
 
 def proposal(session: Session, row: EditProposal) -> ProposalOut:
-    """One proposal, with everything needed to decide about it.
-
-    A FAILED proposal has no candidate, so it presents as a command, a state, and
-    a code. That is the whole response: there is nothing to diff, and inventing an
-    empty diff would suggest an edit was computed and found to change nothing.
-    """
     body = ProposalOut(
         id=row.id,
         paper_id=row.paper_id,
@@ -122,12 +114,6 @@ def _scope(scope: EditScope | None) -> EditScopeOut | None:
 def _diffs(
     before: Document | None, after: Document, paragraph_ids: tuple[str, ...]
 ) -> list[ParagraphDiff]:
-    """Before and after for each changed paragraph, as plain text.
-
-    Citation ids are listed alongside rather than left inside the strings, so the
-    UI can mark a removed citation as a citation instead of as a stretch of
-    vanished characters.
-    """
     diffs: list[ParagraphDiff] = []
     for paragraph_id in paragraph_ids:
         revised = after.paragraph(paragraph_id)

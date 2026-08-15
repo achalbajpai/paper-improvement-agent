@@ -1,5 +1,3 @@
-"""Export preflight and export runs."""
-
 from __future__ import annotations
 
 from app.api.presenters.shared import _error_code
@@ -10,12 +8,6 @@ from app.services.exporter.preflight import Preflight as PreflightResult
 
 
 def preflight(checks: PreflightResult) -> ExportPreflight:
-    """Blockers and warnings stay separate lists, because they are two questions.
-
-    One is "this cannot be done"; the other is "this can be done at a cost you
-    must accept". Merging them into a severity would lose which of the two a
-    given item is.
-    """
     return ExportPreflight(
         revision_id=checks.revision_id,
         citation_style=checks.citation_style,

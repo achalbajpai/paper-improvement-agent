@@ -1,19 +1,3 @@
-"""Verification results, warnings, and warning identity.
-
-Two kinds of outcome, and the difference is not severity but *who decides*.
-
-* A **blocker** is something the system will not do at all. No acknowledgement
-  clears it.
-* A **warning** is a real consequence the researcher may accept. It requires an
-  explicit acknowledgement naming that specific consequence.
-
-Warning identity is the load-bearing part. An acknowledgement is bound to a
-warning id that is derived from the warning's *content*, so acknowledging
-"citation [12] will be removed" cannot be replayed against a later proposal that
-removes a different citation, and cannot survive the proposal changing
-underneath it.
-"""
-
 from __future__ import annotations
 
 from enum import StrEnum
@@ -44,8 +28,6 @@ class CheckName(StrEnum):
 
 
 class WarningCode(StrEnum):
-    """Consequences a researcher can knowingly accept."""
-
     CITATION_REMOVED = "CITATION_REMOVED"
 
     REFERENCE_LEFT_UNCITED = "REFERENCE_LEFT_UNCITED"
@@ -64,8 +46,6 @@ class WarningCode(StrEnum):
 
 
 class BlockerCode(StrEnum):
-    """Things the system refuses to do, whatever the researcher says."""
-
     PROTECTED_TOKEN_VIOLATION = "PROTECTED_TOKEN_VIOLATION"
     CITATION_INVENTED = "CITATION_INVENTED"
     UNSUPPORTED_NOVELTY = "UNSUPPORTED_NOVELTY"
@@ -94,12 +74,6 @@ class VerificationWarning(BaseModel):
         subject_ids: tuple[str, ...],
         content_hash: str,
     ) -> VerificationWarning:
-        """Construct a warning whose id is derived from its content.
-
-        ``content_hash`` binds the id to the candidate this warning was computed
-        against, so an acknowledgement collected for one proposal cannot be
-        replayed against a regenerated one.
-        """
         identity = canonical_sha256(
             {
                 "code": code.value,
@@ -147,7 +121,6 @@ class VerificationResult(BaseModel):
 
     @property
     def required_warning_ids(self) -> tuple[str, ...]:
-        """Exactly the acknowledgements acceptance will demand."""
         return tuple(sorted(warning.id for warning in self.warnings))
 
     @property

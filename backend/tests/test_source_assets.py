@@ -16,12 +16,6 @@ from tests.conftest import validated
     reason="the corpus PDFs are mounted in the api container",
 )
 def test_embedded_raster_figures_are_recovered_from_the_source_pdf(tmp_path: Path) -> None:
-    """A GROBID bitmap graphic can still be exported from the source PDF.
-
-    GROBID records coordinates for A_numeric's two figures but does not attach
-    image bytes to the TEI.  PyMuPDF can see those embedded image blocks, so
-    they must not remain fidelity blockers after source-asset attachment.
-    """
     document = validated("A_numeric").document
     figures_before = [block for block in document.blocks.values() if block.kind is BlockKind.FIGURE]
     assert all(block.source_boxes for block in figures_before)

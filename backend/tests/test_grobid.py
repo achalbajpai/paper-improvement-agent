@@ -1,5 +1,3 @@
-"""Regression tests for the GROBID multipart request contract."""
-
 from __future__ import annotations
 
 import httpx
@@ -11,7 +9,6 @@ EXPECTED_COORDINATES = ["figure", "formula", "title", "persName", "p", "biblStru
 
 
 def multipart_values(body: bytes, boundary: bytes, field: str) -> list[str]:
-    """Every value sent under one multipart field name, in order."""
     marker = f'name="{field}"'.encode()
     return [
         part.split(b"\r\n\r\n", 1)[1].rstrip(b"\r\n").decode()
@@ -23,16 +20,6 @@ def multipart_values(body: bytes, boundary: bytes, field: str) -> list[str]:
 def test_process_fulltext_repeats_tei_coordinate_fields(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The encoded body is the contract here, not the parameter literal.
-
-    HTTPX expands a list *value* into a repeated multipart field, but a list of
-    ``(name, value)`` pairs is read as a raw byte sequence and raises
-    ``TypeError`` while encoding. That is not an ``httpx.HTTPError``, so it
-    escapes the adapter's error mapping and surfaces as an unhandled 500 on
-    every parse. Asserting on the wire format pins both regressions: the crash,
-    and a dict of plain strings that would quietly request one coordinate
-    instead of six.
-    """
     captured: dict[str, object] = {}
 
     def fake_post(url: str, **kwargs: object) -> httpx.Response:

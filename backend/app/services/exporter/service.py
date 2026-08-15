@@ -1,17 +1,3 @@
-"""The export operation, fenced.
-
-An export run row is written before rendering starts and updated when it ends, so
-a failed export is a run that says why rather than a download button that does
-nothing. Rendering happens with no transaction open: Pandoc plus pdfTeX takes
-seconds, and holding a row lock across that would pin a connection for the whole
-render.
-
-Preflight runs twice on purpose. The UI calls it to show the researcher what will
-be lost, and this service calls it again at the moment of export, because a style
-can be changed or a revision accepted in between and the acknowledgements were
-collected against the earlier answer.
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -37,7 +23,6 @@ logger = get_logger(__name__)
 def preflight(
     session: Session, paper_id: str, revision_id: str | None = None
 ) -> preflight_module.Preflight:
-    """What this revision can and cannot promise, without exporting anything."""
     paper = repositories.get_paper(session, paper_id)
     revision = (
         repositories.get_revision(session, revision_id)
@@ -65,7 +50,6 @@ def run_export(
     *,
     acknowledged_warning_ids: list[str],
 ) -> ExportRun:
-    """Render the paper's current revision into downloadable artifacts."""
     deadline = Deadline.after("export", get_settings().export_deadline_seconds)
     paper = repositories.get_paper(session, paper_id)
     revision = repositories.get_current_revision(session, paper)
@@ -164,13 +148,6 @@ def _storage_dir(paper: Paper) -> Path:
 
 
 def _original_reference_ids(session: Session, paper: Paper) -> frozenset[str]:
-    """The bibliography as uploaded, from revision 1.
-
-    Retention policy is about what the *author* provided, so it is read from the
-    parse rather than from the revision being exported: a reference this system
-    added and later dropped was never the author's, and printing it would be a
-    claim they did not make.
-    """
     first = (
         session.query(DocumentRevision)
         .filter_by(paper_id=paper.id, revision_number=1)

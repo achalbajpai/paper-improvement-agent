@@ -1,18 +1,3 @@
-"""Interrupted work, and the states it must never be left in.
-
-Two failure modes, tested separately because they have different fixes.
-
-An exception the code did not anticipate is handled *in* the operation: the
-handler catches everything, not only ``AppError``, so the terminal state is
-written before the exception leaves. A process that dies mid-operation cannot be
-handled there at all, and is swept at startup instead.
-
-Both matter for the same reason: ``PARSING`` and ``PENDING`` are not merely
-untidy, they are refusing states. A paper stuck in ``PARSING`` cannot be
-re-parsed, and a proposal stuck in ``PENDING`` blocks every future edit on its
-paper.
-"""
-
 from __future__ import annotations
 
 import pytest
@@ -44,7 +29,6 @@ def test_an_unexpected_exception_gets_a_typed_identity() -> None:
 
 
 def test_normalising_never_puts_the_exception_text_in_the_envelope() -> None:
-    """An unexpected exception's message can quote manuscript prose."""
     typed = as_app_error(ValueError("The dominant sequence transduction models are"))
 
     rendered = str(typed.envelope())
@@ -60,12 +44,6 @@ def test_a_typed_error_is_passed_through_unchanged() -> None:
 def test_an_unexpected_parse_failure_still_leaves_the_paper_parseable(
     db: Session, stored_paper: Paper, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A paper left in PARSING can never be parsed again.
-
-    ``_claim_for_parsing`` admits UPLOADED, PARSE_FAILED and PARSED only, so a
-    crash that skipped the failure path would take the paper out of the product
-    for good.
-    """
 
     def explode(*args: object, **kwargs: object) -> str:
         raise RuntimeError("something nobody predicted")
@@ -85,7 +63,6 @@ def test_an_unexpected_parse_failure_still_leaves_the_paper_parseable(
 def test_a_failure_while_committing_the_parse_is_also_terminal(
     db: Session, stored_paper: Paper, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The commit sits inside the handled block, not after it."""
 
     def explode(*args: object, **kwargs: object) -> object:
         raise RuntimeError("commit failed")
@@ -116,7 +93,6 @@ def test_an_interrupted_parse_is_swept_at_startup(db: Session, stored_paper: Pap
 
 
 def test_an_interrupted_proposal_stops_blocking_the_paper(db: Session, stored_paper: Paper) -> None:
-    """A PENDING proposal holds the paper's one edit slot for ever."""
     proposal = EditProposal(
         id=new_id("prop"),
         paper_id=stored_paper.id,
@@ -160,7 +136,6 @@ def test_interrupted_runs_are_swept(db: Session, stored_paper: Paper) -> None:
 
 
 def test_the_sweep_leaves_settled_work_alone(db: Session, stored_paper: Paper) -> None:
-    """A completed run swept into FAILED would be a worse bug than the one this fixes."""
     counts = reconcile_interrupted(db)
 
     assert counts == {"papers": 0, "proposals": 0, "reviews": 0, "exports": 0, "claims": 0}
@@ -170,11 +145,6 @@ def test_the_sweep_leaves_settled_work_alone(db: Session, stored_paper: Paper) -
 def test_an_abandoned_idempotency_claim_stops_burning_the_key(
     db: Session, stored_paper: Paper
 ) -> None:
-    """An unresolved claim answers OPERATION_IN_PROGRESS to every retry, for ever.
-
-    The client retries with the key it already used, so a claim left open by a
-    dead process makes that operation permanently unrepeatable.
-    """
     outcome = repositories.begin_operation(
         db,
         scope_type="paper",
@@ -210,12 +180,6 @@ def test_an_abandoned_idempotency_claim_stops_burning_the_key(
 
 
 def test_a_review_killed_mid_run_leaves_a_row_to_settle(db: Session, stored_paper: Paper) -> None:
-    """The run row is written before the slow work, not after it.
-
-    Written only on completion, a review killed during its minutes of provider
-    and model calls would leave nothing: no failed run for the researcher, and
-    nothing for the sweep to find.
-    """
     run = claim_run(
         db, paper_id=stored_paper.id, revision_id=stored_paper.current_revision_id or ""
     )

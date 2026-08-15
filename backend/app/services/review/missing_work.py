@@ -1,35 +1,3 @@
-"""Missing-work review: published work a claim does not cite.
-
-The support reviewer answers "does what you cited say what you said". This
-answers the other half of the question -- "what did you not cite that you
-should have" -- and it is the half where a system can do real damage, because a
-recommendation asserts that a work exists, is real, and is relevant.
-
-Three properties keep that honest.
-
-**Every suggestion is a snapshotted provider record.** A suggestion is a
-``source_records`` row written from a real OpenAlex or Semantic Scholar
-response. The model ranks ids drawn from that set and never names a work, so a
-fabricated recommendation is not something this path can express.
-
-**Suggestions are deduplicated against the manuscript's own bibliography.**
-Telling a researcher to cite a paper they already cite is worse than saying
-nothing: it is confidently wrong about the document in front of it. Matching is
-on DOI, arXiv id, provider identity, and title similarity, because a
-bibliography entry and a provider record rarely agree on all four.
-
-**"We found nothing" and "we could not look" are different answers.** A claim
-searched against both providers with nothing usable back is reported as
-searched. A claim whose search met a degraded provider says so, and the run's
-degradation list says which provider it was.
-
-Claim selection here is deliberately *not* the support reviewer's density-first
-ordering. Missing work is most likely exactly where citations are sparse, so
-ranking paragraphs by how many citations they already carry would search hardest
-where there is least to find. Sections are ordered by where an uncited claim
-matters instead.
-"""
-
 from __future__ import annotations
 
 import re
@@ -68,8 +36,6 @@ _DEFAULT_PRIORITY = 2
 
 @dataclass(frozen=True)
 class SearchNote:
-    """Why a searched claim produced no suggestion."""
-
     sentence_id: str
     detail: str
 
@@ -79,8 +45,6 @@ logger = get_logger(__name__)
 
 @dataclass
 class MissingWorkOutcome:
-    """Findings that carry suggestions, and an account of the claims that did not."""
-
     findings: list[ReviewFinding] = field(default_factory=list)
     notes: dict[str, str] = field(default_factory=dict)
     paragraphs_searched: int = 0
@@ -90,8 +54,6 @@ class MissingWorkOutcome:
 
 
 class MissingWorkReviewer:
-    """Searches for work a claim should have cited, and vouches for what it returns."""
-
     def __init__(
         self,
         session: Session,
@@ -115,11 +77,6 @@ class MissingWorkReviewer:
         extract: Callable[[Paragraph], tuple[ClaimTarget, ...]],
         deadline: Deadline,
     ) -> MissingWorkOutcome:
-        """Search the claims most likely to be missing a citation.
-
-        ``extract`` is the runner's cached claim extractor, so a paragraph both
-        passes look at costs one model call rather than two.
-        """
         settings = get_settings()
         bibliography = BibliographyIndex.with_snapshots(self.session, self.paper_id, document)
         outcome = MissingWorkOutcome()
@@ -218,13 +175,6 @@ class MissingWorkReviewer:
     def _rank(
         self, target: ClaimTarget, candidates: list[Candidate], deadline: Deadline
     ) -> tuple[list[tuple[Candidate, str]], Provenance]:
-        """Rank this claim's candidates against *this* claim.
-
-        One reranking call per claim. Pooling several claims' candidates into one
-        call and ranking them against one claim's text is the shape of bug that
-        discards a good suggestion for sentence three because it is irrelevant to
-        sentence one.
-        """
         renumbered = [
             replace(candidate, id=f"cand_{index:03d}") for index, candidate in enumerate(candidates)
         ]
@@ -252,7 +202,6 @@ class MissingWorkReviewer:
         return ordered, Provenance.of(result)
 
     def _coverage(self) -> str:
-        """What was actually searched. "Both providers" is a claim, not a phrase."""
         degraded = {item.provider for item in self.provider_session.degradations}
         if not degraded:
             return "both providers"
@@ -283,13 +232,6 @@ class MissingWorkReviewer:
 
 
 def paragraphs_worth_searching(document: Document, limit: int) -> list[Paragraph]:
-    """Which paragraphs to search for missing work.
-
-    Ordered by where an uncited claim does damage -- introductions and related
-    work first, discussion and conclusions next, methods and results last --
-    and never by how many citations a paragraph already has. Ties break on
-    document order so two runs over one manuscript search the same paragraphs.
-    """
     ranked = sorted(
         enumerate(document.paragraphs()),
         key=lambda pair: (_priority(document, pair[1]), pair[0]),
@@ -307,11 +249,6 @@ def _priority(document: Document, paragraph: Paragraph) -> int:
 
 
 def _link_for(work: ProviderWork) -> str | None:
-    """A suggestion the researcher cannot open is not a suggestion.
-
-    Provider-supplied URLs are untrusted, so only https survives; a DOI is
-    turned into a resolver link the server built itself.
-    """
     if work.url and work.url.startswith("https://"):
         return work.url
     doi = normalise_doi(work.doi)

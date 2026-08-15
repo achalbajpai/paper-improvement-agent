@@ -1,21 +1,3 @@
-"""Structured-output LLM adapter.
-
-There is no single giant prompt. Every call site owns its own module, its own
-Pydantic response schema, its own versioned prompt, and its own fixture; this
-adapter only knows how to send one of those and validate what comes back.
-
-Two rules are structural rather than advisory:
-
-* Manuscript content enters a prompt inside explicit delimiters, under a
-  standing instruction to ignore directives found inside them. This is defence
-  in depth only. Real enforcement is that no prompt is trusted to establish a
-  fact: schemas are validated, candidate identifiers are allowlisted, protected
-  tokens are rehydrated by the server, and the DeltaEngine computes what changed
-  from the ASTs.
-* Only the selected section or paragraph is ever sent, never the whole
-  manuscript.
-"""
-
 from __future__ import annotations
 
 import time
@@ -50,18 +32,11 @@ SYSTEM_PREAMBLE = (
 
 
 def delimit(label: str, content: str) -> str:
-    """Wrap untrusted content so a prompt cannot be steered by the manuscript."""
     return f"{label}:\n<<<BEGIN_UNTRUSTED_CONTENT>>>\n{content}\n<<<END_UNTRUSTED_CONTENT>>>"
 
 
 @dataclass(frozen=True)
 class Prompt:
-    """One named, versioned prompt.
-
-    ``version`` is recorded on ``verification_checks`` so a stored result can be
-    traced to the exact instruction that produced it.
-    """
-
     name: str
     version: str
     system: str
@@ -80,14 +55,6 @@ class LLMResult[TModel: BaseModel]:
 
 @dataclass(frozen=True)
 class Provenance:
-    """Who produced a model-authored judgement.
-
-    Recorded on findings and verification checks so a stored judgement can be
-    re-examined later. The provider is part of it because a model name does not
-    identify one: two providers serve models under the same name, and a
-    configured fallback can answer a call the primary was configured for.
-    """
-
     provider: str
     model: str
     prompt_version: str
@@ -103,12 +70,6 @@ class Provenance:
 
 @dataclass
 class _CallBudget:
-    """A shared LLM-call budget for one review or edit operation.
-
-    The fallback client shares this object with the primary client, so switching
-    providers cannot accidentally double the operation's allowance.
-    """
-
     limit: int
     used: int = 0
 
@@ -123,12 +84,6 @@ class _CallBudget:
 
 
 class StructuredLLM(Protocol):
-    """What a call site needs from a model.
-
-    Stated as a protocol so callers depend on the structured-output contract,
-    while the production module exposes only the real HTTP client.
-    """
-
     @property
     def model(self) -> str: ...
 
@@ -146,8 +101,6 @@ class StructuredLLM(Protocol):
 
 
 class _Budget:
-    """One call's wall-clock allowance, shared by the attempt and its repair."""
-
     def __init__(self, ceiling: float, remaining_seconds: float | None) -> None:
         self._deadline = time.monotonic() + (
             min(ceiling, remaining_seconds) if remaining_seconds else ceiling
@@ -160,13 +113,10 @@ class _Budget:
         return left
 
     def left(self) -> float:
-        """What is left, without deciding whether that is enough."""
         return self._deadline - time.monotonic()
 
 
 class LLMClient:
-    """Thin OpenAI-compatible adapter with bounded calls and optional failover."""
-
     def __init__(
         self,
         api_key: str | None = None,
@@ -226,18 +176,6 @@ class LLMClient:
         remaining_seconds: float | None = None,
         temperature: float = 0.0,
     ) -> LLMResult[T]:
-        """Send one prompt and return a validated model instance.
-
-        A malformed response gets exactly one repair attempt, which echoes the
-        validation error back. A second failure is a typed error rather than an
-        unbounded retry loop.
-
-        The caller's remaining time is one budget for everything this call
-        does -- the attempt, any rate-limit waits, the repair, and the fallback
-        provider. Measured once here rather than granted afresh to each, because
-        several attempts each holding the full remainder can together overrun
-        the operation's deadline several times over.
-        """
         budget = _Budget(self._timeout, remaining_seconds)
 
         try:
@@ -331,22 +269,6 @@ class LLMClient:
         budget: _Budget,
         temperature: float,
     ) -> str:
-        """One request, waiting out rate limits while the provider asks and the
-        budget allows.
-
-        A 429 is an instruction to wait, not an outage, and treating it as one
-        fails an operation that would have succeeded a second later -- which on
-        a free-tier model is most of them. Free tiers also refuse repeatedly
-        under a burst, so a single wait is an arbitrary stopping point: the
-        second refusal is no more permanent than the first.
-
-        Bounded three ways, so this is a budget rather than a retry loop. The
-        provider must send a ``Retry-After`` each time -- a 429 without one may
-        never pass. The caller's deadline must cover the wait and another
-        attempt. And ``llm_max_rate_limit_waits`` caps the count, so a provider
-        that answers 429 forever cannot hold an operation open until its
-        deadline expires.
-        """
         for _ in range(get_settings().llm_max_rate_limit_waits):
             try:
                 return self._send(messages, schema, budget.remaining(), temperature)
@@ -365,14 +287,6 @@ class LLMClient:
         timeout: float,
         temperature: float,
     ) -> str:
-        """One outbound request, and one unit of the operation's call budget.
-
-        Reserved here rather than once per logical prompt: a single
-        ``complete_structured`` can issue several requests -- retries after a
-        rate limit, a schema repair, then the same again on the fallback
-        provider -- and a budget counted per prompt would name a number of
-        billable requests that bears no relation to how many are made.
-        """
         self._budget.reserve()
 
         payload: dict[str, Any] = {
@@ -433,11 +347,6 @@ class LLMClient:
 
 
 def parse_completion(body: Any) -> str:
-    """The content of a chat completion, or a typed error saying why there is none.
-
-    Split out so the refusal path can be asserted without a provider that
-    refuses on demand.
-    """
     if not isinstance(body, dict):
         raise LLMInvalidOutputError("The model provider returned an invalid response object.")
     choices = body.get("choices")
@@ -456,7 +365,6 @@ def parse_completion(body: Any) -> str:
 
 
 def _validation_summary(error: ValidationError) -> str:
-    """A bounded diagnostic that never echoes rejected model output."""
     summaries = [
         {
             "loc": [str(part) for part in item.get("loc", ())],
@@ -469,18 +377,6 @@ def _validation_summary(error: ValidationError) -> str:
 
 
 def strict_json_schema(schema: type[BaseModel]) -> dict[str, Any]:
-    """Pydantic's JSON schema, adjusted for OpenAI strict structured output.
-
-    Strict mode requires every property to appear in ``required`` and forbids
-    additional properties at every level. Optional fields therefore have to be
-    expressed as nullable rather than absent.
-
-    A schema that cannot be expressed that way -- an open ``dict[str, Any]``,
-    say -- is refused here rather than sent. Providers differ on whether they
-    reject one: a provider can accept a schema too loosely, which
-    would mean an unconstrained response validated against a schema the model
-    was never actually held to. The guarantee has to be ours.
-    """
     tightened: dict[str, Any] = _tighten(schema.model_json_schema())
     if not _expressible(tightened):
         raise InternalError(
@@ -491,7 +387,6 @@ def strict_json_schema(schema: type[BaseModel]) -> dict[str, Any]:
 
 
 def _expressible(node: Any) -> bool:
-    """Whether every object in the schema is closed and fully required."""
     if isinstance(node, dict):
         if node.get("type") == "object":
             if "properties" not in node:
@@ -519,31 +414,10 @@ def _tighten(node: Any) -> Any:
 
 
 def build_llm() -> StructuredLLM:
-    """The model this operation will use.
-
-    One entry point, and it only ever returns a client that talks to a
-    configured provider. There is deliberately no offline or recorded
-    implementation selectable here: every support, relevance, selection and
-    novelty judgement this system reports is an academic claim, and a
-    configuration flag must never be able to manufacture one. Test doubles live
-    outside this package, so they cannot become reachable through runtime code.
-    """
     return LLMClient()
 
 
 def _retry_after(response: httpx.Response) -> float:
-    """The provider's requested wait, capped. Zero when it did not ask for one.
-
-    Only an explicit ``Retry-After`` earns a wait. A 429 without one is not
-    necessarily a throughput limit that will pass: an exhausted quota or a
-    depleted balance answers 429 for ever, and waiting the cap on every call
-    would spend an operation's whole deadline sleeping before reporting a
-    failure that was knowable at the first response.
-
-    Capped because a provider asking for a two-minute pause is asking for more
-    than an interactive operation has to give; the caller's deadline decides
-    whether even the capped value is affordable.
-    """
     raw = response.headers.get("Retry-After", "")
     try:
         requested = float(raw)

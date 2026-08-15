@@ -1,14 +1,3 @@
-"""Persistence I/O.
-
-Two things live here that the rest of the system depends on being in exactly one
-place: the idempotency ledger and the lock ordering.
-
-Locks are always taken **paper first, then proposal**. A fixed global order is
-what makes deadlock impossible between concurrent acceptance and a concurrent
-edit on the same paper; two code paths that each take the locks in their own
-natural order will eventually deadlock in production and pass every test.
-"""
-
 from __future__ import annotations
 
 import uuid
@@ -44,7 +33,6 @@ def new_id(prefix: str) -> str:
 
 
 def lock_paper(session: Session, paper_id: str) -> None:
-    """Take the paper lock. Always first."""
     session.execute(
         text("SELECT pg_advisory_xact_lock(:cls, hashtext(:key))"),
         {"cls": LOCK_CLASS_PAPER, "key": paper_id},
@@ -52,7 +40,6 @@ def lock_paper(session: Session, paper_id: str) -> None:
 
 
 def lock_proposal(session: Session, proposal_id: str) -> None:
-    """Take the proposal lock. Always after the paper lock."""
     session.execute(
         text("SELECT pg_advisory_xact_lock(:cls, hashtext(:key))"),
         {"cls": LOCK_CLASS_PROPOSAL, "key": proposal_id},
@@ -61,8 +48,6 @@ def lock_proposal(session: Session, proposal_id: str) -> None:
 
 @dataclass(frozen=True)
 class ReplayedResponse:
-    """A completed operation being replayed for the same key and body."""
-
     status_code: int
     body: dict[str, Any]
 
@@ -76,16 +61,6 @@ def begin_operation(
     idempotency_key: str,
     request_body: Any,
 ) -> OperationRequest | ReplayedResponse:
-    """Claim an idempotency key, or replay the response it already produced.
-
-    Three distinct outcomes, and conflating any two of them produces a bug that
-    only shows up under a retry:
-
-    * key unused           -> a claim row, and the caller does the work
-    * key used, same body  -> the stored response, replayed
-    * key used, other body -> a conflict, never a silent replay of the wrong
-      result
-    """
     request_sha = canonical_sha256(request_body)
 
     existing = session.execute(
@@ -155,11 +130,6 @@ def complete_operation(
 
 
 def fail_operation(session: Session, claim: OperationRequest) -> None:
-    """Release a claim so a corrected retry with the same key can proceed.
-
-    A failed attempt must not permanently burn the key: the researcher's client
-    will retry, and returning "already in progress" forever would be a dead end.
-    """
     session.delete(claim)
     session.flush()
 
@@ -247,11 +217,6 @@ def list_proposals(session: Session, paper_id: str, limit: int = 20) -> Sequence
 
 
 def active_proposals(session: Session, paper_id: str) -> Sequence[EditProposal]:
-    """Proposals that still hold the paper's single edit slot.
-
-    Narrower than ``unsettled_proposals``: a BLOCKED proposal cannot be
-    accepted, so it does not stop the researcher trying a different command.
-    """
     return (
         session.execute(
             select(EditProposal).where(
@@ -265,13 +230,6 @@ def active_proposals(session: Session, paper_id: str) -> Sequence[EditProposal]:
 
 
 def unsettled_proposals(session: Session, paper_id: str) -> Sequence[EditProposal]:
-    """Proposals that have not reached a final state, blocked ones included.
-
-    A blocked proposal still carries a candidate built against a particular
-    revision. When that revision is replaced the candidate is stale, exactly as
-    a live one would be, so it must be retired too rather than left showing a
-    diff against a document that no longer exists.
-    """
     return (
         session.execute(
             select(EditProposal).where(

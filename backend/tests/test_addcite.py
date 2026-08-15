@@ -1,15 +1,3 @@
-"""ADD_SUPPORTING_CITATIONS.
-
-The intent with the most obvious way to go wrong: a model that suggests a paper
-which does not exist, or quietly rewrites the sentence while adding a marker to
-it. Both are tested here by making the scripted model attempt exactly that.
-
-The load-bearing assertion in this file is the prose one. Everything else is a
-policy that could reasonably be argued about; "the sentence the researcher wrote
-is the sentence that remains" is not negotiable, and it is checked by comparing
-the paragraphs character for character with the markers removed.
-"""
-
 from __future__ import annotations
 
 import re
@@ -63,12 +51,6 @@ def longest_section(document: Document) -> Any:
 
 
 class FakeRetrieval(AcademicRetrievalService):
-    """Returns fixed works without touching a provider.
-
-    Subclassed rather than duck-typed so that a change to the real ``search``
-    signature breaks this file instead of silently diverging from it.
-    """
-
     def __init__(self, works: list[ProviderWork]) -> None:
         self.works = works
         self.queries: list[str] = []
@@ -101,7 +83,6 @@ def scripted(
     candidate_id: str = "cand_000",
     sentence_id: str | None = None,
 ) -> ScriptedLLM:
-    """A model that behaves: it picks the first uncited sentence and one work."""
 
     def claims(prompt: Prompt) -> dict[str, Any]:
         return {
@@ -146,10 +127,6 @@ _LISTED_ID = re.compile(r"^(\S+):\s", re.MULTILINE)
 
 
 def _first_id(user_prompt: str) -> str:
-    """The first identifier the server listed in the prompt.
-
-    Scripted models pick from what they were offered, exactly as a real one must.
-    """
     match = _LISTED_ID.search(user_prompt)
     if match is None:
         raise AssertionError("the prompt listed no identifiers")
@@ -175,7 +152,6 @@ def test_a_marker_goes_before_the_full_stop() -> None:
 
 
 def test_a_marker_goes_inside_a_closing_quote() -> None:
-    """``as shown [1]."`` is the convention; ``as shown." [1]`` is not."""
     text = 'The authors call this "attention."'
     offset = insertion.insertion_offset(text, 0, len(text))
 
@@ -183,7 +159,6 @@ def test_a_marker_goes_inside_a_closing_quote() -> None:
 
 
 def test_an_adjacent_citation_is_joined_rather_than_doubled() -> None:
-    """``[3, 7]``, never ``[3][7]``."""
     text = "Transformers dominate sequence modelling [[CITE:c1]]."
     offset = insertion.insertion_offset(text, 0, len(text))
 
@@ -216,12 +191,6 @@ def test_a_citation_is_added_and_the_reference_is_minted(document: Document) -> 
 
 
 def test_no_prose_is_regenerated(document: Document) -> None:
-    """The guarantee the whole intent rests on.
-
-    Every paragraph in the candidate must be character-identical to the original
-    once markers are stripped -- not merely similar, and not merely unflagged by
-    the delta.
-    """
     result = run(document, scripted())
 
     before = {paragraph.id: tokenize(paragraph) for paragraph in document.paragraphs()}
@@ -249,8 +218,6 @@ def test_the_sentence_that_was_chosen_is_the_sentence_that_gains_the_marker(
 
 
 def test_an_invented_candidate_id_is_refused(document: Document) -> None:
-    """The reranker returning a work that was never retrieved is the failure this
-    system exists to prevent, so it raises rather than being dropped."""
     with pytest.raises(GroundingValidationError):
         run(document, scripted(candidate_id="cand_hallucinated"))
 
@@ -261,8 +228,6 @@ def test_an_invented_sentence_id_is_refused(document: Document) -> None:
 
 
 def test_a_contradicting_work_is_never_offered(document: Document) -> None:
-    """Vetting happens before insertion, so a contradicted suggestion does not
-    reach the researcher at all."""
     with pytest.raises(NoResultsError):
         run(document, scripted(verdict="CONTRADICTED"))
 
@@ -270,7 +235,6 @@ def test_a_contradicting_work_is_never_offered(document: Document) -> None:
 def test_finding_nothing_raises_no_results_rather_than_an_empty_edit(
     document: Document,
 ) -> None:
-    """Distinct from a provider failure, and distinct from an empty proposal."""
     with pytest.raises(NoResultsError) as caught:
         run(document, scripted(), works=[])
 
@@ -278,7 +242,6 @@ def test_finding_nothing_raises_no_results_rather_than_an_empty_edit(
 
 
 def test_a_work_too_incomplete_to_cite_is_rejected(document: Document) -> None:
-    """A suggestion the reader cannot look up is a gesture at a citation."""
     bare = ProviderWork(
         provider=ProviderName.OPENALEX,
         external_id="W1",
@@ -291,8 +254,6 @@ def test_a_work_too_incomplete_to_cite_is_rejected(document: Document) -> None:
 
 
 def test_the_search_query_is_the_topic_not_the_manuscript(document: Document) -> None:
-    """Posting unpublished prose to two third-party APIs is not what "add some
-    citations" asks for."""
     retrieval = FakeRetrieval([WORK])
     CitationAdder(llm=scripted(), retrieval=retrieval, sources=FakeSources()).run(
         document, longest_section(document).id, Deadline.after("test", 60.0)
@@ -354,12 +315,6 @@ def other_work(external_id: str, title: str) -> ProviderWork:
 
 
 def test_each_claim_is_ranked_against_itself(document: Document) -> None:
-    """Ranking a pooled candidate set against one claim's text is the bug where a
-    work retrieved for the third sentence dies on the first sentence's relevance.
-
-    The reranker is therefore called once per claim, and each call must carry
-    that claim's own text.
-    """
     claim_texts: list[str] = []
 
     def claims(prompt: Prompt) -> dict[str, Any]:
@@ -399,11 +354,6 @@ def test_each_claim_is_ranked_against_itself(document: Document) -> None:
 
 
 def test_a_cited_claim_can_still_take_another_source(document: Document) -> None:
-    """ "Add more citations to the introduction" is a request about cited claims.
-
-    Refusing every sentence that already has one would make the command return
-    nothing on any introduction that was cited at all.
-    """
     section = longest_section(document)
     cited = [
         sentence
@@ -450,7 +400,6 @@ def test_a_cited_claim_can_still_take_another_source(document: Document) -> None
 
 
 def test_one_claim_never_takes_more_than_its_cap(document: Document) -> None:
-    """The prompt states the limit; this enforces it on what came back."""
     works = [other_work(f"W{index}", f"A work {index}") for index in range(4)]
 
     def claims(prompt: Prompt) -> dict[str, Any]:
@@ -503,8 +452,6 @@ def test_one_claim_never_takes_more_than_its_cap(document: Document) -> None:
 
 
 def test_a_work_already_in_the_bibliography_is_not_offered_again(document: Document) -> None:
-    """Minting a second entry for a work the author already cites would put a
-    duplicate in their reference list."""
     cited = next(r for r in document.references if r.csl.title)
     duplicate = other_work("W_dup", cited.csl.title or "").model_copy(update={"doi": cited.csl.DOI})
 

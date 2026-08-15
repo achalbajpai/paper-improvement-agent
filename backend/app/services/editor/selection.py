@@ -1,14 +1,3 @@
-"""Attaching a retrieved work to a sentence: one LLM call, one schema.
-
-The sixth and last model call in the system, and the narrowest. Ranking already
-decided which works are relevant to the section; this decides which *sentence*
-each one belongs to. Both halves of that pairing are ids the server issued, so
-the model chooses between things that exist and cannot name anything else.
-
-It writes no prose. The rationale it returns is shown to the researcher as the
-model's reasoning, never used to alter the manuscript.
-"""
-
 from __future__ import annotations
 
 from pydantic import BaseModel, Field

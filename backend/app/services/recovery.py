@@ -1,22 +1,3 @@
-"""Reconciling work that was interrupted rather than failed.
-
-Every operation persists its own terminal state, including for exceptions it did
-not anticipate. That covers the process staying alive long enough to write the
-row. It does not cover the process not staying alive: a container restart, an
-OOM kill, or a host dying mid-parse leaves a ``PARSING`` paper or a ``PENDING``
-proposal that no handler will ever return to.
-
-Those states are not merely untidy, they are terminal in the wrong direction. A
-paper stuck in ``PARSING`` cannot be parsed again, and a proposal stuck in
-``PENDING`` blocks every future edit on its paper: the researcher's only recourse
-would be to re-upload.
-
-So on startup, anything left running by a process that is no longer here is
-marked failed with a code that says why. This is a sweep, not a scheduler: these
-operations are synchronous, so nothing can legitimately be running when the
-process that would be running it has only just started.
-"""
-
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -40,12 +21,6 @@ FAILURE_DETAIL = "This operation was interrupted before it finished and did not 
 def reconcile_interrupted(
     session: Session, *, older_than: timedelta = timedelta(0)
 ) -> dict[str, int]:
-    """Mark interrupted work terminal, so the researcher is never locked out.
-
-    ``older_than`` exists for tests and for the paranoid: at startup the default
-    of zero is correct, because no synchronous operation of this process can
-    predate this process.
-    """
     cutoff = datetime.now(UTC) - older_than
     counts = {
         "papers": _fail_papers(session, cutoff),
@@ -80,7 +55,6 @@ def _fail_papers(session: Session, cutoff: datetime) -> int:
 
 
 def _fail_proposals(session: Session, cutoff: datetime) -> int:
-    """A PENDING proposal holds the paper's one edit slot until it is resolved."""
     proposals = (
         session.execute(
             select(EditProposal).where(
@@ -118,17 +92,6 @@ def _fail_runs(runs: Sequence[ReviewRun] | Sequence[ExportRun]) -> int:
 
 
 def _release_claims(session: Session, cutoff: datetime) -> int:
-    """Idempotency claims left open by a process that is no longer running.
-
-    An unresolved claim answers OPERATION_IN_PROGRESS to every retry, for ever.
-    The key the client will retry with is the one it already used, so leaving
-    the row would make that operation permanently unrepeatable -- the opposite
-    of what idempotency is for.
-
-    Deleted rather than marked, which is what ``fail_operation`` does for a
-    handled failure: the operation did not complete, so the correct answer to a
-    retry is to run it, not to replay a result that was never produced.
-    """
     claims = (
         session.execute(
             select(OperationRequest).where(

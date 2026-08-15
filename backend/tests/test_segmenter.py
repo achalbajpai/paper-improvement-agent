@@ -1,11 +1,3 @@
-"""The segmenter's contract.
-
-Every anchor in the system -- claim anchors, attachment re-verification, citation
-insertion points -- is a (paragraph, sentence index) pair produced here. A
-boundary that moves by one silently repoints an anchor at a neighbouring
-sentence, and nothing downstream can detect it. These tests pin the boundaries.
-"""
-
 from __future__ import annotations
 
 import pytest
@@ -54,11 +46,6 @@ def test_boundaries(text: str, expected: int) -> None:
 
 
 def test_citation_token_is_never_split() -> None:
-    """The reason citations are atomised before segmentation.
-
-    A marker like ``[1, p. 4.]`` contains a period. Segmenting raw prose would
-    cut the marker in half and attach the two pieces to different sentences.
-    """
     paragraph = paragraph_of(
         TextRun(text="Transformers dominate "),
         CitationRef(citation_id="cite_imported_001"),
@@ -110,12 +97,6 @@ def test_segment_plain_normalises_whitespace() -> None:
 
 
 def test_every_corpus_paragraph_segments_without_loss(corpus_name: str) -> None:
-    """No prose may disappear between the paragraph and its sentences.
-
-    Segmentation is lossy only in whitespace. If a boundary rule ever drops a
-    fragment -- a trailing clause after an unmatched bracket, say -- claim
-    extraction would silently never see that text.
-    """
     document = validated(corpus_name).document
     for paragraph in document.paragraphs():
         sentences = segment_paragraph(paragraph)

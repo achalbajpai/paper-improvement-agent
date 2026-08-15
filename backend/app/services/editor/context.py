@@ -1,23 +1,3 @@
-"""The sentence a citation is attached to.
-
-Attachment is checked when a citation's *context* changed, not when the citation
-moved. A marker that slid to a different character offset because an earlier
-sentence was shortened is still supporting the same claim; a marker that stayed
-put while its sentence was reworded is not. Position is the thing that looks like
-it matters and is not.
-
-Context is keyed on occurrence identity rather than on sentence index, so it
-survives sentences being added or removed around it.
-
-The citation-only fragment case is the one worth being careful about. A sentence
-that is nothing but markers -- ``[3, 7].`` on its own after a list -- carries no
-claim, so the claim it supports is in the sentence before it. Treating the
-fragment as the context would compare two empty strings and report, confidently,
-that nothing changed.
-
-Pure: no I/O.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -31,8 +11,6 @@ MIN_SUBSTANTIVE_WORDS = 3
 
 @dataclass(frozen=True)
 class CitationContext:
-    """What one occurrence is attached to, and enough to tell if it changed."""
-
     citation_id: str
     paragraph_id: str
 
@@ -42,12 +20,10 @@ class CitationContext:
 
     @property
     def host_hash(self) -> str:
-        """Whitespace-insensitive, so a reflow is not mistaken for a rewording."""
         return text_sha256(self.host_text)
 
 
 def contexts_for(document: Document) -> dict[str, CitationContext]:
-    """Every placed occurrence in the document, keyed by occurrence id."""
     found: dict[str, CitationContext] = {}
     for paragraph in document.paragraphs():
         found.update(paragraph_contexts(paragraph))
@@ -71,7 +47,6 @@ def paragraph_contexts(paragraph: Paragraph) -> dict[str, CitationContext]:
 
 
 def _host_index(sentences: tuple[Sentence, ...], index: int) -> int:
-    """Walk back past citation-only fragments to the sentence making the claim."""
     cursor = index
     while cursor > 0 and _is_fragment(sentences[cursor]):
         cursor -= 1
@@ -85,12 +60,6 @@ def _is_fragment(sentence: Sentence) -> bool:
 def changed_contexts(
     before: dict[str, CitationContext], after: dict[str, CitationContext]
 ) -> tuple[str, ...]:
-    """Occurrences that survived the edit and whose claim was reworded.
-
-    Movement alone is not a change: the comparison is on the host sentence's
-    text, whitespace-insensitively, so reflowing a paragraph re-verifies nothing
-    and rewording one sentence re-verifies exactly the citations in it.
-    """
     return tuple(
         sorted(
             citation_id

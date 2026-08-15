@@ -1,26 +1,3 @@
-"""Upload and parse, as two operations.
-
-They are split because they fail for unrelated reasons and on unrelated
-timescales. An upload is a fast, local write that either happened or did not. A
-parse is a minute of GROBID plus mapping, and it can be superseded, retried, or
-time out. Fusing them would mean a GROBID hiccup discarded a file the researcher
-already handed over.
-
-The parse runs in **three phases**, and the shape matters:
-
-1. A short transaction claims the paper, moves it to PARSING, and records *which*
-   parse owns it.
-2. The slow work -- GROBID, mapping, postvalidation -- runs with no transaction
-   open. Holding one across a ninety-second HTTP call would pin a connection and
-   a row lock for the entire time.
-3. A second short transaction re-takes the lock, **checks ownership before
-   writing anything**, and only then creates the revision.
-
-Phase 3's ownership check is the point. Without it, a parse that was superseded
-while it was running would still write a revision, and the paper would end up
-pointing at the older of two results with the newer one orphaned behind it.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -67,23 +44,14 @@ class ParseOutcome:
 
 
 def content_digest(content: bytes) -> str:
-    """The identity of an upload, for idempotency. Same bytes, same request."""
     return manuscripts.sha256_bytes(content)
 
 
 def validate_upload(content: bytes) -> None:
-    """Reject invalid bytes before an idempotency claim or filesystem write."""
     manuscripts.validate_pdf(content)
 
 
 def create_paper(session: Session, *, filename: str, content: bytes) -> Paper:
-    """Validate and store one PDF, then record it.
-
-    The file is written before the row exists, so a crash between the two leaves
-    an unreferenced directory rather than a row pointing at nothing. The
-    directory is removed on failure; a reconciliation sweep handles the crash
-    case.
-    """
     manuscripts.validate_pdf(content)
     storage_id, directory = manuscripts.new_storage_dir()
     try:
@@ -136,7 +104,6 @@ def parse_paper(
 
 
 def _claim_for_parsing(session: Session, paper_id: str, operation_id: str) -> Path:
-    """Phase 1. Take ownership of the paper's parse slot."""
     repositories.lock_paper(session, paper_id)
     paper = repositories.get_paper(session, paper_id)
 
@@ -162,7 +129,6 @@ def _claim_for_parsing(session: Session, paper_id: str, operation_id: str) -> Pa
 
 
 def _run_grobid(directory: Path, deadline: Deadline, client: GrobidClient) -> str:
-    """Phase 2. The slow part, with no transaction open."""
     deadline.check("grobid")
     pdf = directory / "original.pdf"
     if not pdf.exists():
@@ -183,7 +149,6 @@ def _commit_parse(
     document: Document,
     report: PostValidationReport,
 ) -> ParseOutcome:
-    """Phase 3. Ownership first, then write."""
     repositories.lock_paper(session, paper_id)
     paper = repositories.get_paper(session, paper_id)
 
@@ -238,13 +203,6 @@ def _commit_parse(
 
 
 def _record_failure(session: Session, paper_id: str, operation_id: str, error: AppError) -> None:
-    """Persist a typed failure, but only if this parse still owns the paper.
-
-    Reached from every exit that is not a successful commit, including the
-    commit itself and anything unanticipated. A paper left in ``PARSING`` cannot
-    be parsed again -- ``_claim_for_parsing`` refuses that state -- so a failure
-    that skipped this would take the paper out of the product permanently.
-    """
     session.rollback()
     repositories.lock_paper(session, paper_id)
     paper = repositories.get_paper(session, paper_id)
@@ -260,12 +218,6 @@ def _record_failure(session: Session, paper_id: str, operation_id: str, error: A
 
 
 def report_summary(report: PostValidationReport) -> dict[str, Any]:
-    """The stored form of a postvalidation report.
-
-    Counts and identifiers only. The per-item issue list carries marker text,
-    which is manuscript prose, so it stays in memory for the evaluation harness
-    and never reaches a persisted row that a log or an export might surface.
-    """
     return {
         "family": report.family.value,
         "checked": report.checked,
@@ -296,11 +248,6 @@ class CitationCounts:
 
 
 def citation_counts(document: Document) -> CitationCounts:
-    """Counted per *item*, not per occurrence, except where noted.
-
-    ``[2, 5]`` asserts two citations. Reporting it as one would understate both
-    the work done and the risk carried.
-    """
     total = linked = 0
     raw_only = partial = 0
     for node in document.citations.values():

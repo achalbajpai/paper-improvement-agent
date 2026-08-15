@@ -1,5 +1,3 @@
-"""Shared persistence helpers for idempotent API operations."""
-
 from __future__ import annotations
 
 from fastapi import status
@@ -17,7 +15,6 @@ def complete_operation(
     *,
     status_code: int = status.HTTP_200_OK,
 ) -> None:
-    """Persist a successful operation response when its claim still exists."""
     claim = session.get(OperationRequest, operation_id)
     if claim is None:
         return
@@ -31,7 +28,6 @@ def release_operation(
     *,
     rollback: bool = False,
 ) -> None:
-    """Release a failed operation claim, optionally discarding pending work first."""
     if rollback:
         session.rollback()
     claim = session.get(OperationRequest, operation_id)

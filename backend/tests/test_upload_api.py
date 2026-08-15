@@ -1,5 +1,3 @@
-"""Upload rejection happens before operation claims or filesystem writes."""
-
 from __future__ import annotations
 
 from io import BytesIO

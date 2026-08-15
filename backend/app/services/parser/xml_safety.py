@@ -1,14 +1,3 @@
-"""Hardened XML parsing.
-
-TEI is parsed with entity resolution disabled, no network access, and a bounded
-input size -- even though it comes from our own GROBID container. "It came from
-our own service" is the assumption that ages badly: the container is reachable
-on a local network, and a manuscript is attacker-influenced input travelling
-through it.
-
-Pure: constructs a parser and parses a string. No I/O of its own.
-"""
-
 from __future__ import annotations
 
 from lxml import etree
@@ -53,10 +42,5 @@ def local_name(element: etree._Element) -> str:
 
 
 def text_of(element: etree._Element) -> str:
-    """All descendant text, whitespace-normalised.
-
-    ``itertext`` is typed as yielding ``str | bytes`` because lxml can carry
-    CDATA; TEI never does, and non-text nodes are skipped rather than coerced.
-    """
     parts = [part for part in element.itertext() if isinstance(part, str)]
     return " ".join("".join(parts).split())

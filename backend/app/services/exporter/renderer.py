@@ -1,17 +1,3 @@
-"""Running Pandoc, and checking that it rendered the document we gave it.
-
-Pandoc lives in the ``api`` image, so this is a subprocess
-rather than a fourth service. Every invocation is a fixed argument list with no
-shell, and the only paths involved are ones this module created.
-
-The signature check is the part that matters. Pandoc is a large program with a
-citation processor whose output depends on a style file, and "the export ran
-successfully" is not the same claim as "the export contains the citations the
-manuscript has". So the IR is re-parsed after the round trip and every occurrence
-is compared to the AST on whole items in encoded form -- the form that went in,
-not the rendered form, which citeproc legitimately rewrites.
-"""
-
 from __future__ import annotations
 
 import json
@@ -55,7 +41,6 @@ MEDIA_TYPES = {
 
 
 def style_path(style: CitationStyle) -> Path:
-    """The vendored CSL file. Committed, so an export never fetches a style."""
     path = STYLES / f"{style.value.lower()}.csl"
     if not path.exists():
         raise RenderFailedError("The citation style file is missing.", style=style.value)
@@ -71,11 +56,6 @@ def render(
     deadline: Deadline,
     asset_root: Path | None = None,
 ) -> list[Artifact]:
-    """Produce every artifact into ``into``, which the caller owns.
-
-    Writes to a directory the caller treats as temporary. Publication is the
-    caller's job, and is a rename, so a half-written export is never visible.
-    """
     deadline.check("render")
     into.mkdir(parents=True, exist_ok=True)
     render_document = _materialize_assets(document, asset_root=asset_root, into=into)
@@ -110,7 +90,6 @@ def render(
 
 
 def _materialize_assets(document: Document, *, asset_root: Path | None, into: Path) -> Document:
-    """Copy source crops into the export directory and make them portable."""
     blocks = dict(document.blocks)
     asset_dir = into / "assets"
     copied = False
@@ -142,7 +121,6 @@ def _materialize_assets(document: Document, *, asset_root: Path | None, into: Pa
 
 
 def _verify_document_ir(document: Document, ir: dict[str, object]) -> None:
-    """Check the non-citation contract before invoking Pandoc."""
     meta = ir.get("meta")
     if not isinstance(meta, dict):
         raise RenderFailedError("Pandoc IR has no metadata.", target="document.json")
@@ -187,7 +165,6 @@ def _div_ids(node: object) -> set[str]:
 
 
 def _verify_pdf(document: Document, path: Path) -> None:
-    """Perform a cheap semantic smoke check on the actual PDF artifact."""
     try:
         reader = PdfReader(str(path))
         if not reader.pages:
@@ -216,13 +193,6 @@ def _verify_pdf(document: Document, path: Path) -> None:
 def _verify_citations(
     document: Document, ir_path: Path, common: list[str], into: Path, deadline: Deadline
 ) -> None:
-    """Round-trip the IR through Pandoc and compare citations to the AST.
-
-    Runs before any artifact is written, so a mismatch fails the export rather
-    than producing a PDF nobody should trust. Compared on the encoded suffix
-    form, because citeproc rewrites locators on output and the rendered form is
-    therefore never parsed back.
-    """
     round_tripped = into / "roundtrip.json"
     _pandoc(["--from=json", "--to=json"], ir_path, round_tripped, deadline)
     rendered = pandoc_ir.citation_signatures(json.loads(round_tripped.read_text(encoding="utf-8")))
@@ -255,12 +225,6 @@ def _placed(document: Document) -> set[str]:
 
 
 def _pandoc(arguments: list[str], source: Path, target: Path, deadline: Deadline) -> None:
-    """One Pandoc invocation. Fixed argv, no shell, server-owned paths only.
-
-    The timeout is the smaller of this call's own limit and what remains of the
-    export's budget. An export runs four of these in sequence, so per-call
-    limits alone would let it run to four times the deadline it was given.
-    """
     executable = shutil.which("pandoc")
     if executable is None:
         raise RenderFailedError(

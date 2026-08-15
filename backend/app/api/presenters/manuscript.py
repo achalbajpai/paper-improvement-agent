@@ -1,5 +1,3 @@
-"""The parsed manuscript, in a shape built for reading rather than storage."""
-
 from __future__ import annotations
 
 from collections import Counter
@@ -25,18 +23,6 @@ def manuscript(
     revision: DocumentRevision,
     resolutions: Mapping[str, ReferenceResolution] | None = None,
 ) -> ManuscriptOut:
-    """The parsed manuscript, in a shape built for reading.
-
-    Everything a researcher must be able to check before trusting a review is
-    here and visible: the section hierarchy, the prose, each citation marker
-    where it occurs, what it linked to, and the bibliography it linked into.
-    Markers the parser could only keep verbatim are listed separately rather
-    than rendered as though they were understood.
-
-    ``resolutions`` overlays what the latest review concluded about each entry's
-    identity. It is not part of the revision -- a revision is content-addressed --
-    so it is joined here rather than stored on the document.
-    """
     document = Document.model_validate(revision.document)
     occurrences = Counter(
         reference_id

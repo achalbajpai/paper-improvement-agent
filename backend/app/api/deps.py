@@ -1,5 +1,3 @@
-"""Shared route dependencies."""
-
 from __future__ import annotations
 
 from collections.abc import Iterator
@@ -23,12 +21,6 @@ def get_session() -> Iterator[Session]:
 def require_idempotency_key(
     idempotency_key: Annotated[str, Header(alias="Idempotency-Key")],
 ) -> str:
-    """Every mutating POST carries one.
-
-    Required rather than optional: an optional key is one a client forgets, and
-    the retry that follows creates a second parse, a second review run, or a
-    second proposal on the same paper.
-    """
     if not idempotency_key.strip():
         raise MalformedRequestError("This request requires an Idempotency-Key header.")
     if len(idempotency_key) > 128:

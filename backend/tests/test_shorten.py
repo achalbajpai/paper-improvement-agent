@@ -1,11 +1,3 @@
-"""SHORTEN_SECTION and its safety spine.
-
-The tests here are mostly adversarial: each one describes a specific way a
-shortening model can damage a manuscript, and asserts that the damage is refused
-rather than reported. The scripted model is used to *produce* the damage on
-purpose -- a stand-in that always behaves well would test nothing.
-"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -42,7 +34,6 @@ def longest_section(document: Document) -> Any:
 
 
 def test_dropping_a_citation_is_allowed_and_recorded() -> None:
-    """Removal is the point of shortening; it is policed later, not here."""
     audit = tokens.audit("A [[CITE:c1]] and B [[CITE:c2]].", "A [[CITE:c1]].", "p_1_1")
 
     assert audit.kept == ("c1",)
@@ -57,10 +48,6 @@ def test_reordering_is_allowed() -> None:
 
 
 def test_duplicating_a_token_is_refused() -> None:
-    """One occurrence became two assertions of support.
-
-    Silently de-duplicating would mean guessing which occurrence the model meant.
-    """
     with pytest.raises(ProtectedTokenError) as caught:
         tokens.audit("A [[CITE:c1]].", "A [[CITE:c1]] and again [[CITE:c1]].", "p_1_1")
 
@@ -73,8 +60,6 @@ def test_inventing_a_token_is_refused() -> None:
 
 
 def test_a_mangled_token_is_refused_rather_than_read_as_a_removal() -> None:
-    """``[[CITE:c1`` parses as no token at all, so counting well-formed tokens
-    would report this as a clean drop."""
     with pytest.raises(ProtectedTokenError):
         tokens.audit("A [[CITE:c1]].", "A [[CITE:c1.", "p_1_1")
 
@@ -95,7 +80,6 @@ def test_the_plan_spreads_the_reduction_across_paragraphs(document: Document) ->
 
 
 def test_short_paragraphs_are_skipped_with_a_reason(document: Document) -> None:
-    """Below the floor, "shorten this" becomes "delete a sentence"."""
     section = longest_section(document)
     plan = plan_shortening(section, 0.25)
 
@@ -124,18 +108,10 @@ def test_the_ratio_is_clamped_so_shortening_never_becomes_deletion(
 
 @pytest.fixture
 def generative(monkeypatch: Any) -> None:
-    """Pin generative rewriting on.
-
-    Extractive-only is the default until a live model-safety go/no-go passes for the
-    configured model, so a test about the rewriter -- and about the checks that
-    exist precisely because a rewriter can invent -- has to ask for the mode
-    those checks run in.
-    """
     monkeypatch.setattr(get_settings(), "shorten_extractive_only", False)
 
 
 def scripted_shortener(transform: Any) -> ScriptedLLM:
-    """A model that shortens by applying ``transform`` to the tokenised text."""
 
     def rewrite(prompt: Prompt) -> dict[str, Any]:
         return {"revised_text": transform(_body(prompt.user)), "claimed_actions": ["shortened"]}
@@ -149,7 +125,6 @@ def scripted_shortener(transform: Any) -> ScriptedLLM:
 
 
 def _body(user_prompt: str) -> str:
-    """Recover the delimited paragraph the server put in the prompt."""
     start = user_prompt.index("<<<BEGIN_UNTRUSTED_CONTENT>>>") + len(
         "<<<BEGIN_UNTRUSTED_CONTENT>>>"
     )
@@ -158,7 +133,6 @@ def _body(user_prompt: str) -> str:
 
 
 def halve(text: str) -> str:
-    """Keep the first half of the sentences, tokens intact."""
     parts = text.split(". ")
     keep = max(1, len(parts) // 2)
     return ". ".join(parts[:keep]).rstrip(".") + "."
@@ -182,7 +156,6 @@ def test_a_clean_shortening_produces_a_candidate_and_a_delta(
 
 
 def test_paragraph_ids_survive_a_rewrite(document: Document, generative: None) -> None:
-    """Every anchor, finding, and delta refers to a paragraph by id."""
     section = longest_section(document)
     result = shorten_section(
         document,
@@ -242,8 +215,6 @@ def test_an_invented_citation_stops_the_whole_section(document: Document, genera
 def test_unsupported_novelty_blocks_and_is_never_a_warning(
     document: Document, generative: None
 ) -> None:
-    """A researcher cannot acknowledge a fabricated statistic: acknowledging it
-    would require already knowing it was fabricated."""
     llm = ScriptedLLM(
         {
             "rewrite": lambda prompt: {
@@ -267,8 +238,6 @@ def test_unsupported_novelty_blocks_and_is_never_a_warning(
 
 
 def test_a_failure_stages_nothing(document: Document, generative: None) -> None:
-    """All-or-nothing across paragraphs: a partially shortened section is a
-    document nobody asked for and nobody reviewed."""
     section = longest_section(document)
     calls: list[int] = []
 
@@ -291,8 +260,6 @@ def test_a_failure_stages_nothing(document: Document, generative: None) -> None:
 
 
 def test_extractive_mode_invents_nothing(document: Document, monkeypatch: Any) -> None:
-    """The model-safety go/no-go switch. Sentences are removed whole, so there is no
-    text for a model to invent."""
     monkeypatch.setattr(get_settings(), "shorten_extractive_only", True)
     section = longest_section(document)
 
@@ -313,8 +280,6 @@ def test_extractive_mode_invents_nothing(document: Document, monkeypatch: Any) -
 
 
 def test_extractive_mode_keeps_cited_sentences(document: Document, monkeypatch: Any) -> None:
-    """Dropping a cited sentence would remove the author's support, and this mode
-    runs precisely when the safety net for a rewrite is unavailable."""
     monkeypatch.setattr(get_settings(), "shorten_extractive_only", True)
     section = longest_section(document)
 
@@ -356,13 +321,6 @@ def test_an_edit_that_changes_nothing_is_refused(document: Document) -> None:
 
 
 def test_the_delta_is_computed_from_documents_not_from_claims(document: Document) -> None:
-    """A model reporting "removed two sentences" while also dropping a citation
-    is the failure this engine exists to catch.
-
-    The prose here is untouched and only the markers are gone, so the engine
-    reports citation removals and *not* a text change -- which is the
-    distinction a researcher reading the diff actually needs.
-    """
     paragraph = next(p for p in document.paragraphs() if p.citation_ids)
     builder = CandidateRevisionBuilder(document)
     builder.replace_paragraph(paragraph.id, detokenize(tokenize(paragraph)))
@@ -381,8 +339,6 @@ def test_an_identical_document_produces_an_empty_delta(document: Document) -> No
 
 
 def test_a_removed_block_is_reported(document: Document) -> None:
-    """No supported edit touches a block, so any difference is a bug in the
-    editing path rather than a decision to put to the researcher."""
     block_id = next(iter(document.blocks))
     stripped = document.model_copy(
         update={"blocks": {k: v for k, v in document.blocks.items() if k != block_id}}
@@ -395,12 +351,6 @@ def test_a_removed_block_is_reported(document: Document) -> None:
 
 
 def test_a_named_paragraph_is_shortened_alone(document: Document) -> None:
-    """A command that named one paragraph must not rewrite the section around it.
-
-    The routed paragraph id used to be validated and then dropped, so asking to
-    shorten one paragraph produced a diff over every eligible paragraph in its
-    section -- the narrower the command, the wider the edit.
-    """
     section = longest_section(document)
     wide = plan_shortening(section, 0.25)
     assert len(wide.targets) > 1, "this section cannot show the difference"
@@ -443,11 +393,6 @@ def test_naming_a_paragraph_from_another_section_is_refused(document: Document) 
 def test_the_delta_reports_the_edit_against_the_paragraphs_it_changed(
     document: Document,
 ) -> None:
-    """The scoped counts are the edit's own size; the document counts are not.
-
-    Reporting the manuscript total as the edit's denominator is how a trim to one
-    paragraph gets displayed as though the whole paper had been rewritten.
-    """
     paragraph = next(p for p in document.paragraphs() if p.word_count() >= MIN_PARAGRAPH_WORDS)
     builder = CandidateRevisionBuilder(document)
     builder.replace_paragraph(paragraph.id, f"Trimmed. {tokenize(paragraph)}"[:80])
@@ -469,11 +414,6 @@ def test_the_delta_reports_the_edit_against_the_paragraphs_it_changed(
 
 
 def test_an_edit_that_changes_no_prose_reports_no_word_change(document: Document) -> None:
-    """Adding citations leaves every paragraph's prose alone.
-
-    Scoped counts of zero are the honest answer here, and the summary says so in
-    words rather than printing "0 -> 0".
-    """
     paragraph = next(p for p in document.paragraphs() if p.citation_ids)
     builder = CandidateRevisionBuilder(document)
     builder.replace_paragraph(paragraph.id, detokenize(tokenize(paragraph)))

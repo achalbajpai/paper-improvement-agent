@@ -1,33 +1,3 @@
-"""Independent verification of what the mapper linked.
-
-The mapper links a marker to a reference through GROBID's XML-ID. This module
-checks that link against a *different* signal -- the number or the author-year the
-reader actually saw printed, compared with a bibliography order derived from
-``listBibl`` position. Neither quantity is computed from the other, which is the
-only reason the check means anything. A validator that re-derives its expectation
-from the string it is checking always passes, and the evaluation that reports its
-pass rate measures nothing.
-
-It does three things, in order of value:
-
-1. **Recovers** links GROBID missed. On the corpus, GROBID leaves author-year
-   markers such as ``(Peters et al., 2018a)`` untargeted; matching surname and
-   year against the bibliography links them, and promotes whole clusters that had
-   been downgraded because one of four items failed to resolve.
-2. **Downgrades** links the evidence contradicts, to ``RAW_ONLY``. A citation
-   pointing at the wrong paper is worse than one that admits it is only text.
-3. **Reports** what it could not settle, so parse quality shows uncertainty
-   instead of hiding it.
-
-Numeric and author-year evidence are not treated as equally strong, because they
-are not. A printed ``[13]`` disagreeing with bibliography position 13 is decisive.
-A surname disagreeing is not: GROBID mis-splits names (``Rie Kubota Ando`` becomes
-family ``Kubota``), so a surname mismatch is at least as likely to be a metadata
-error as a linkage error, and downgrading on it would destroy good citations.
-
-Pure: no I/O.
-"""
-
 from __future__ import annotations
 
 import re
@@ -107,7 +77,6 @@ class PostValidationReport:
 
     @property
     def linkage_accuracy(self) -> float:
-        """Agreement rate among items where a check was possible."""
         return self.agreed / self.checked if self.checked else 0.0
 
 
@@ -163,7 +132,6 @@ def _check(
     index: _ReferenceIndex,
     document: Document,
 ) -> tuple[LinkageIssue, str | None]:
-    """Return the finding for one item, and a reference id to link if recovered."""
     if family is CitationFamily.NUMERIC:
         return _check_numeric(evidence, index)
     if family is CitationFamily.AUTHOR_YEAR:
@@ -275,19 +243,6 @@ def _recover_author_year(
 def _verify_author_year(
     evidence: LinkageEvidence, document: Document, *, surname: str, year: int
 ) -> tuple[LinkageIssue, str | None]:
-    """Corroborate an author-year link against the marker the reader saw.
-
-    Two independent signals are available, and both are noisy in a *known*
-    direction. GROBID splits ``Rie Kubota Ando`` into family ``Kubota``, so a
-    surname disagreement is often a metadata error. It also misdates entries --
-    on the corpus it dates the 2013 ``word2vec`` paper 2009 -- so a year
-    disagreement is often a metadata error too.
-
-    A link is therefore downgraded only when **neither** signal corroborates it.
-    One agreeing signal against one disagreeing signal is reported as uncertain
-    and left alone, because the alternative is destroying correct citations to
-    punish a misparsed field.
-    """
     record = document.reference(evidence.reference_id or "")
     if record is None:
         return _issue(evidence, LinkageCode.MISMATCH, detail="Link points at no record."), None
@@ -411,7 +366,6 @@ def _apply(
 
 
 def _fold(value: str) -> str:
-    """Case- and accent-insensitive key. 'Schölkopf' and 'Scholkopf' are one name."""
     decomposed = unicodedata.normalize("NFKD", value)
     stripped = "".join(char for char in decomposed if not unicodedata.combining(char))
     return stripped.casefold().strip()
@@ -430,8 +384,6 @@ def _surnames(record: ReferenceRecord) -> set[str]:
 
 
 class _ReferenceIndex:
-    """Lookups built only from bibliography position and parsed metadata."""
-
     def __init__(self, references: tuple[ReferenceRecord, ...]) -> None:
         self.by_order: dict[int, ReferenceRecord] = {
             record.bibliography_order: record for record in references

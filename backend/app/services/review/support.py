@@ -1,16 +1,3 @@
-"""Claim-citation support: one LLM call, one schema, one versioned prompt.
-
-The verdict set deliberately omits ``UNSUPPORTED``. Failing to find support in an
-abstract is not evidence that the cited paper lacks it -- the material may be in
-the full text -- and reporting it as unsupported would launder absence of
-evidence into a finding against the researcher's citation. Every verdict is
-labelled an abstract-level assessment.
-
-The model returns a verdict and evidence *span ids*. The server validates each
-id and constructs the EvidenceAnchor, so there is no paraphrase matching and no
-normalisation ambiguity.
-"""
-
 from __future__ import annotations
 
 from pydantic import BaseModel, Field

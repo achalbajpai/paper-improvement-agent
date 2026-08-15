@@ -1,5 +1,3 @@
-"""Review runs and their findings, with every quoted string resolved server-side."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -35,13 +33,6 @@ _SEVERITY = case(
 
 
 def review_run(session: Session, run: ReviewRun) -> ReviewRunOut:
-    """Build a review response, resolving every quoted string server-side.
-
-    Findings store anchors, not text. The claim sentence is re-read from the
-    revision and the evidence from the snapshotted abstract, so what a researcher
-    sees quoted is what those artefacts contain -- and a finding whose anchor no
-    longer resolves shows as missing rather than as stale text nobody noticed.
-    """
     revision = session.get(DocumentRevision, run.revision_id)
     document = Document.model_validate(revision.document) if revision else None
     rows = (
@@ -115,12 +106,6 @@ def finding(
 
 
 def _suggestions(row: ReviewFindingRow, sources: dict[str, SourceRecord]) -> list[SuggestedWork]:
-    """Resolve suggested work from the snapshots, dropping anything unlinkable.
-
-    A suggestion whose snapshot is gone, or which has no https link and no DOI,
-    is not rendered at all. "Cite this, I cannot tell you where to find it" is
-    not a recommendation a researcher can act on.
-    """
     rationales = [str(value) for value in row.suggestion_rationales]
     suggestions: list[SuggestedWork] = []
 

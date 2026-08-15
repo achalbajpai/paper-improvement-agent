@@ -1,13 +1,3 @@
-"""Provider-neutral LLM configuration contracts.
-
-``_env_file=None`` stops pydantic-settings reading ``.env``; it does not stop it
-reading the environment. Inside the api container every ``LLM_*`` variable is
-exported from the deployment's own configuration, so a test that only disables
-the file is asserting against whatever provider happens to be deployed. The
-environment is cleared here instead, which is the only way these are contracts
-about the code rather than about the current ``.env``.
-"""
-
 from __future__ import annotations
 
 import pytest
@@ -73,7 +63,6 @@ def test_groq_native_key_resolves_for_the_groq_provider() -> None:
 
 
 def test_an_unconfigured_provider_reports_itself_as_unconfigured() -> None:
-    """No key means no model. There is no mode in which that stops being true."""
     settings = Settings(_env_file=None)
 
     assert settings.effective_llm_api_key == ""

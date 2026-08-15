@@ -1,17 +1,3 @@
-"""The error taxonomy.
-
-Every failure in this system is a typed member of this taxonomy. Two rules follow
-from that and are enforced by tests:
-
-* No bare ``except:`` and no bare ``raise Exception``.
-* No ``assert`` for a runtime invariant. ``python -O`` strips assertions, and the
-  checks that stop an invented citation from reaching a manuscript must not be
-  removable by an interpreter flag. ``assert`` belongs in ``tests/``.
-
-The exact strings are frozen: they are persisted as ``failure_code``, returned in
-the HTTP error envelope, and reach the UI through the generated client.
-"""
-
 from __future__ import annotations
 
 from enum import StrEnum
@@ -71,13 +57,6 @@ class ErrorCode(StrEnum):
 
 
 class AppError(Exception):
-    """Base of the taxonomy. Carries an HTTP status and a serialisable envelope.
-
-    ``details`` never contains manuscript prose. Failures are reported by
-    identifier and code so that an error surface cannot become a confidentiality
-    leak.
-    """
-
     code: ErrorCode = ErrorCode.INTERNAL_ERROR
     http_status: int = 500
 
@@ -177,8 +156,6 @@ class TeiMalformedError(AppError):
 
 
 class ProviderError(AppError):
-    """Base for provider failures, so a caller can degrade on the family."""
-
     code = ErrorCode.PROVIDER_UNAVAILABLE
     http_status = 502
 
@@ -216,16 +193,6 @@ class ProviderInvalidResponseError(ProviderError):
 
 
 class ProviderQueryRejectedError(ProviderError):
-    """The provider refused this particular request, and would accept others.
-
-    Raised for a 400: the query we built was malformed, which is a fact about
-    our query and not about the provider. A real paper title -- `Can active
-    memory replace attention?` -- once produced one of these, and because every
-    provider failure degraded the provider for the whole operation, that single
-    reference cost OpenAlex coverage for every later lookup in the same review
-    and was reported to the researcher as the provider being unavailable.
-    """
-
     code = ErrorCode.PROVIDER_INVALID_RESPONSE
     degrades_provider = False
 
@@ -236,14 +203,6 @@ class ProviderBudgetExhaustedError(ProviderError):
 
 
 class NoResultsError(AppError):
-    """The search ran and found nothing.
-
-    Deliberately not a ``ProviderError``: this is an answer, not a failure, and
-    the two are never merged. A rate limit means "ask again later"; this means
-    "there is nothing to add". ADD_SUPPORTING_CITATIONS turns it into a FAILED
-    proposal row carrying this code, so the user is told which one happened.
-    """
-
     code = ErrorCode.NO_RESULTS
     http_status = 422
 
@@ -264,12 +223,6 @@ class LLMInvalidOutputError(AppError):
 
 
 class LLMRateLimitedError(AppError):
-    """The provider asked us to wait. Distinct from being unavailable.
-
-    Kept apart from ``LLMUnavailableError`` because the two call for different
-    responses: one is waited out, the other is reported.
-    """
-
     code = ErrorCode.PROVIDER_RATE_LIMITED
     http_status = 503
 
@@ -290,12 +243,6 @@ class AmbiguousIntentError(AppError):
 
 
 class GroundingValidationError(AppError):
-    """A model returned an identifier that was never issued to it.
-
-    This is the line that stops an invented citation, so it is a runtime
-    exception rather than an assertion.
-    """
-
     code = ErrorCode.GROUNDING_VALIDATION_FAILED
     http_status = 502
 
@@ -311,8 +258,6 @@ class UnsupportedNoveltyError(AppError):
 
 
 class ProseMutationError(AppError):
-    """ADD_SUPPORTING_CITATIONS changed a prose node. It must never do that."""
-
     code = ErrorCode.PROSE_MUTATION_FORBIDDEN
     http_status = 422
 
@@ -353,8 +298,6 @@ class ExportNotReadyError(AppError):
 
 
 class CitationRenderMismatchError(AppError):
-    """The rendered IR disagrees with the source AST about citation content."""
-
     code = ErrorCode.CITATION_RENDER_MISMATCH
     http_status = 500
 
@@ -365,27 +308,11 @@ class RenderFailedError(AppError):
 
 
 class InternalError(AppError):
-    """An exception this system did not anticipate, given a typed identity.
-
-    Operations persist their own failure, and they can only do that for failures
-    they can name. Anything unanticipated -- a driver error, a bug, an
-    unhandled edge -- is normalised here so that the failure path is the same
-    one every typed error takes. Without this, an operation that raised a
-    ``KeyError`` would leave its row in a running state that nothing ever
-    clears, and the researcher would be locked out of the paper.
-    """
-
     code = ErrorCode.INTERNAL_ERROR
     http_status = 500
 
 
 def as_app_error(error: BaseException) -> AppError:
-    """The typed identity of any exception.
-
-    Never re-raises and never inspects the message: an unexpected exception's
-    text can quote manuscript prose, and ``details`` is a surface that reaches
-    clients and logs.
-    """
     if isinstance(error, AppError):
         return error
     return InternalError("An unexpected error ended this operation.", cause=type(error).__name__)

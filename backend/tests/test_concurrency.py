@@ -1,27 +1,3 @@
-"""What holds when the application's own locking is switched off.
-
-Advisory locks make contention produce a clean typed error instead of a race.
-They are also application code, and application code can be wrong: a lock taken
-in the wrong order deadlocks, a lock forgotten protects nothing, and a refactor
-can silently drop one. So the question these tests ask is not "does the locking
-work" but "what happens when it does not" -- and the answer must be that the
-database still refuses the second write.
-
-Every test here disables `lock_paper` and `lock_proposal` and then runs the real
-operation from several threads against real connections. The savepoint-based
-`db` fixture cannot be used: it shares one connection, and a test of concurrency
-that shares a connection is testing nothing. These commit for real and clean up
-after themselves.
-
-Two constraints carry the guarantees:
-
-* `UNIQUE(accepted_proposal_id)` on `document_revisions` -- one revision per
-  proposal, so double acceptance is an integrity error.
-* `UNIQUE NULLS NOT DISTINCT` on `operation_requests` -- one winner per
-  idempotency key, including for global-scope operations where `scope_id` is
-  NULL and a plain unique index would let every row through.
-"""
-
 from __future__ import annotations
 
 import threading
@@ -59,13 +35,6 @@ pytestmark = pytest.mark.usefixtures("database")
 
 @pytest.fixture
 def unlocked(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Remove the application's serialisation, leaving only the database's.
-
-    Patched on the acceptance module's imported names as well as on the
-    repository, because a `from x import y` binding is not affected by patching
-    `x.y` and a half-applied patch would quietly leave the locking in place --
-    making this suite pass for the wrong reason.
-    """
     for module in ("app.db.repositories", "app.services.editor.acceptance"):
         for name in ("lock_paper", "lock_proposal"):
             monkeypatch.setattr(f"{module}.{name}", lambda *args, **kwargs: None, raising=False)
@@ -73,14 +42,6 @@ def unlocked(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture
 def overlapping(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Hold every acceptance inside its transaction until two have arrived.
-
-    A race test that never actually races is worse than no test: it passes for
-    the wrong reason and reports a guarantee nobody verified. Blocking at the
-    point where the revision number is chosen means both transactions have
-    already passed the state, staleness, and snapshot checks, so what they
-    collide on is the constraint itself.
-    """
     barrier = threading.Barrier(2, timeout=10)
     real = repositories.next_revision_number
 
@@ -96,7 +57,6 @@ def overlapping(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture
 def committed_paper() -> Iterator[Paper]:
-    """A real, committed paper. Removed afterwards, cascading to its children."""
     document = validated("A_numeric").document
     with Session(get_engine()) as session:
         paper = Paper(
@@ -140,11 +100,6 @@ def committed_paper() -> Iterator[Paper]:
 
 
 def race(work: Callable[[Session], Any], times: int = 2) -> list[Any]:
-    """Run `work` from `times` threads, each on its own connection.
-
-    Results and exceptions are both returned so a test can assert on the shape of
-    the failure rather than only on the count of survivors.
-    """
 
     def attempt() -> Any:
         with Session(get_engine()) as session:
@@ -161,17 +116,6 @@ def race(work: Callable[[Session], Any], times: int = 2) -> list[Any]:
 def test_double_acceptance_is_refused_by_the_database(
     committed_paper: Paper, unlocked: None, overlapping: None
 ) -> None:
-    """The guarantee that survives the application's locking being wrong.
-
-    Two threads accept the same proposal with nothing serialising them, and the
-    `overlapping` fixture holds both inside the transaction until each has passed
-    every check. Without that the threads could run one after the other and the
-    loser would fail on the state check, which would leave the constraint --
-    the thing actually under test -- never exercised.
-
-    Exactly one revision may result, and the loser must fail rather than produce a
-    second revision from the same decision.
-    """
     with Session(get_engine()) as session:
         paper = session.get(Paper, committed_paper.id)
         assert paper is not None
@@ -200,15 +144,6 @@ def test_double_acceptance_is_refused_by_the_database(
 
 
 def test_two_revisions_cannot_take_the_same_number(committed_paper: Paper, unlocked: None) -> None:
-    """`UNIQUE(paper_id, revision_number)` decides who is revision 2.
-
-    This used to race two accepted proposals. It no longer can: since
-    `uq_one_active_proposal_per_paper` was added, a paper cannot hold two
-    acceptable proposals at once, so that scenario is unreachable by
-    construction. The revision-number constraint is still the backstop for any
-    path that reaches a revision insert, so it is exercised directly rather than
-    through a workflow the schema now forbids.
-    """
     number_seen: list[int] = []
     barrier = threading.Barrier(2, timeout=10)
 
@@ -257,12 +192,6 @@ def race_over(subjects: list[str], work: Callable[[Session, str], Any]) -> list[
 
 
 def test_one_idempotency_key_produces_one_claim(committed_paper: Paper) -> None:
-    """The unique index is the arbiter, not a read-then-write in Python.
-
-    Checking for an existing row and then inserting is a race with a window
-    between the two statements, which is exactly the window a retried request
-    lands in. The insert is allowed to fail and the loser reads the winner's row.
-    """
     key = str(uuid.uuid4())
 
     def claim(session: Session) -> Any:
@@ -293,13 +222,6 @@ def test_one_idempotency_key_produces_one_claim(committed_paper: Paper) -> None:
 
 
 def test_a_global_scope_key_is_still_unique(committed_paper: Paper) -> None:
-    """Why the index must be NULLS NOT DISTINCT.
-
-    Upload has no paper to scope to, so `scope_id` is NULL. Under the default
-    NULLS DISTINCT, every NULL differs from every other NULL and a plain unique
-    index would let four concurrent uploads all claim the same key -- the exact
-    case idempotency exists for.
-    """
     key = str(uuid.uuid4())
 
     def claim(session: Session) -> Any:
@@ -330,12 +252,6 @@ def test_a_global_scope_key_is_still_unique(committed_paper: Paper) -> None:
 
 
 def test_locking_turns_the_race_into_a_clean_refusal(committed_paper: Paper) -> None:
-    """What the advisory locks are actually for.
-
-    The database guarantees correctness either way; the locks decide whether the
-    loser sees a typed domain error or a raw integrity violation. A researcher
-    should be told "this was already applied", not shown a constraint name.
-    """
     with Session(get_engine()) as session:
         paper = session.get(Paper, committed_paper.id)
         assert paper is not None
@@ -355,14 +271,6 @@ def test_locking_turns_the_race_into_a_clean_refusal(committed_paper: Paper) -> 
 def test_two_proposals_cannot_both_hold_the_edit_slot(
     committed_paper: Paper, unlocked: None
 ) -> None:
-    """The read-then-insert overlap check is not a guarantee on its own.
-
-    FastAPI runs sync handlers in a threadpool, so two requests genuinely
-    interleave: both can see no active proposal before either has written one.
-    The partial unique index is what makes "one live edit per paper" true, and
-    it is what this asserts -- with the application's locking removed, so the
-    database is answering on its own.
-    """
 
     def insert(session: Session) -> Any:
         proposal = EditProposal(
@@ -396,11 +304,6 @@ def test_two_proposals_cannot_both_hold_the_edit_slot(
 
 
 def test_a_settled_proposal_frees_the_slot(committed_paper: Paper) -> None:
-    """The index must constrain live proposals only.
-
-    A paper accumulates edits over its life. If the constraint counted settled
-    ones, the second edit anybody ever made would be refused for ever.
-    """
     with Session(get_engine()) as session:
         for state in (ProposalState.ACCEPTED, ProposalState.REJECTED, ProposalState.FAILED):
             session.add(
@@ -429,13 +332,6 @@ def test_a_settled_proposal_frees_the_slot(committed_paper: Paper) -> None:
 def test_one_work_is_snapshotted_once_under_contention(
     committed_paper: Paper, unlocked: None
 ) -> None:
-    """Two snapshots of one work would split its evidence.
-
-    Evidence anchors address a span of *a* snapshot by character offset, so two
-    rows for one abstract mean two findings quoting the same source can point at
-    different rows -- and a later edit to one of them silently disagrees with
-    the other.
-    """
     work = ProviderWork(
         provider=ProviderName.OPENALEX,
         external_id="W_contended",
@@ -462,12 +358,6 @@ def test_one_work_is_snapshotted_once_under_contention(
 
 
 def test_a_run_cannot_cite_another_papers_revision(committed_paper: Paper) -> None:
-    """Ids travel through URLs and request bodies.
-
-    A single-column foreign key would prove the revision exists; it would not
-    prove it belongs to the paper the run is about. The composite key makes a
-    cross-paper association unrepresentable rather than merely unlikely.
-    """
     with Session(get_engine()) as session:
         other = Paper(
             id=repositories.new_id("paper"),
@@ -502,13 +392,6 @@ def test_a_run_cannot_cite_another_papers_revision(committed_paper: Paper) -> No
 
 
 def test_a_proposal_cannot_edit_another_papers_revision(committed_paper: Paper) -> None:
-    """The proposal's base snapshot must belong to the same paper.
-
-    Service code currently selects the current revision server-side, but this is
-    a persistence invariant: future import, recovery, or maintenance code must
-    not be able to construct a cross-paper edit that acceptance would later
-    treat as legitimate.
-    """
     with Session(get_engine()) as session:
         other = Paper(
             id=repositories.new_id("paper"),

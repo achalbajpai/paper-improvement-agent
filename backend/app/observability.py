@@ -1,12 +1,3 @@
-"""Logging setup.
-
-Manuscript prose never appears in logs, traces, exception messages, or
-analytics. Retrieval queries are manuscript-derived and are therefore treated
-the same way: telemetry carries request id, provider, latency, result count, and
-status, and the query text is persisted only in the paper-scoped
-``retrieval_attempts`` row that cascades on delete.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -36,13 +27,6 @@ _BUILTIN_RECORD_FIELDS = frozenset(logging.LogRecord("", 0, "", 0, "", None, Non
 
 
 class KeyValueFormatter(logging.Formatter):
-    """Render the ``extra`` fields.
-
-    Call sites pass paper id, run id, error code, the identifier a model returned;
-    a ``%(message)s`` format string dropped all of it. The privacy rule is enforced
-    at the call sites, so this adds context, not content.
-    """
-
     def format(self, record: logging.LogRecord) -> str:
         base = super().format(record)
         fields = {

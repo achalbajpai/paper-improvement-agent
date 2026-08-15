@@ -1,20 +1,3 @@
-"""The canonical sentence segmenter.
-
-There is exactly one of these, and it is versioned. Claim extraction, anchor
-creation, attachment re-verification, and citation insertion must all agree on
-where sentences begin and end; two segmenters that disagree by one boundary
-produce anchors that silently point at the wrong sentence. ``SEGMENTER_VERSION``
-is stored on every anchor so a stored anchor is never compared across versions.
-
-Citations are **atomised before segmentation**. A marker like ``(Smith, 2021.)``
-or ``[1, p. 4.]`` contains sentence-ending punctuation, so segmenting the raw
-prose would split a citation in half and attach the two pieces to different
-sentences. Replacing each occurrence with ``[[CITE:cite_012]]`` -- which contains
-no boundary punctuation -- makes that impossible rather than unlikely.
-
-Pure: no I/O, no network, no database.
-"""
-
 from __future__ import annotations
 
 import re
@@ -102,7 +85,6 @@ class Sentence:
 
 
 def tokenize(paragraph: Paragraph) -> str:
-    """Render a paragraph with each citation occurrence as one atomic token."""
     parts: list[str] = []
     for node in paragraph.inlines:
         if isinstance(node, TextRun):
@@ -113,7 +95,6 @@ def tokenize(paragraph: Paragraph) -> str:
 
 
 def detokenize(text: str) -> str:
-    """Strip citation tokens, leaving prose. Used for hashing and word counts."""
     return TOKEN_PATTERN.sub("", text)
 
 
@@ -122,7 +103,6 @@ def token_ids(text: str) -> tuple[str, ...]:
 
 
 def segment_text(text: str) -> list[tuple[int, int]]:
-    """Return (start, end) spans of sentences in an already-tokenised string."""
     spans: list[tuple[int, int]] = []
     depth = 0
     start = 0
@@ -190,7 +170,6 @@ def _is_boundary(text: str, index: int) -> bool:
 
 
 def _abbreviation_allows_boundary(text: str, index: int, following: str) -> bool:
-    """Whether the token before this period permits a sentence to end here."""
     word = _preceding_word(text, index).lower()
     if not word:
         return True
@@ -205,7 +184,6 @@ def _abbreviation_allows_boundary(text: str, index: int, following: str) -> bool
 
 
 def _ends_in_title(text: str, index: int) -> bool:
-    """A trailing "Dr." at the end of a fragment is still not a sentence end."""
     return text[index] == "." and _preceding_word(text, index).lower() in _TITLE_ABBREVIATIONS
 
 
@@ -223,7 +201,6 @@ def _preceding_word(text: str, index: int) -> str:
 
 
 def segment_paragraph(paragraph: Paragraph) -> tuple[Sentence, ...]:
-    """Split one paragraph into anchored sentences."""
     tokenised = tokenize(paragraph)
     sentences: list[Sentence] = []
     for index, (start, end) in enumerate(segment_text(tokenised), start=1):
@@ -243,7 +220,6 @@ def segment_paragraph(paragraph: Paragraph) -> tuple[Sentence, ...]:
 
 
 def segment_plain(text: str) -> tuple[str, ...]:
-    """Split a plain string, for provider abstracts rather than manuscripts."""
     return tuple(
         normalize_text(text[start:end])
         for start, end in segment_text(text)

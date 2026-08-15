@@ -1,18 +1,3 @@
-"""No configuration may manufacture an academic judgement.
-
-This system's whole claim is that a support verdict, a relevance ranking, a
-citation attachment and a novelty finding are the product of an actual
-evaluation against actual evidence. A demo, offline or "recorded" mode that
-synthesises those answers does not merely weaken that claim -- it inverts it,
-because every downstream guarantee (server-owned quoting, closed-set ids,
-snapshotted abstracts) then decorates a judgement nobody made.
-
-A recorded mode was once wired into ``build_llm`` behind ``LLM_MODE=recorded``.
-It returned ``SUPPORTED`` for every claim, passed every novelty check, and
-attached the first retrieved work to the first sentence. These tests exist so
-that cannot return quietly.
-"""
-
 from __future__ import annotations
 
 import inspect
@@ -31,12 +16,10 @@ JUDGEMENT_PROMPTS = ("support", "rerank", "selection", "novelty")
 
 
 def test_the_only_configurable_client_is_the_real_one() -> None:
-    """``build_llm`` is the single entry point, and it has one outcome."""
     assert isinstance(build_llm(), LLMClient)
 
 
 def test_no_setting_can_select_a_different_implementation() -> None:
-    """A mode switch is how the fabricating implementation was reachable."""
     fields = set(Settings.model_fields)
 
     assert "llm_mode" not in fields
@@ -50,7 +33,6 @@ def test_build_llm_does_not_branch_on_configuration() -> None:
 
 
 def test_the_adapter_module_defines_no_fabricating_client() -> None:
-    """Only the real client may implement completion in production code."""
     clients = [
         name
         for name, value in vars(llm_module).items()
@@ -63,7 +45,6 @@ def test_the_adapter_module_defines_no_fabricating_client() -> None:
 
 
 def test_scripted_answers_only_what_a_test_handed_it() -> None:
-    """It cannot invent a verdict, because it has none unless one is supplied."""
     scripted = ScriptedLLM({})
     with pytest.raises(LLMUnavailableError):
         scripted.complete_structured(
@@ -73,7 +54,6 @@ def test_scripted_answers_only_what_a_test_handed_it() -> None:
 
 @pytest.mark.parametrize("prompt_name", JUDGEMENT_PROMPTS)
 def test_a_judgement_prompt_needs_a_configured_provider(prompt_name: str) -> None:
-    """With no key there is no verdict -- not a default one."""
     client = LLMClient(api_key="", model="none")
     with pytest.raises(LLMNotConfiguredError):
         client.complete_structured(
@@ -82,7 +62,6 @@ def test_a_judgement_prompt_needs_a_configured_provider(prompt_name: str) -> Non
 
 
 def test_readiness_reports_no_mode() -> None:
-    """The UI once said "the model's reading" while no model had read anything."""
     assert not hasattr(get_settings(), "llm_mode")
 
 

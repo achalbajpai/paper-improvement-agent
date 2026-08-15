@@ -1,8 +1,3 @@
-"""What a verification run is given, and what it accumulates.
-
-Separated from the checks so that a check imports the shape it fills in without
-importing every other check alongside it."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -31,8 +26,6 @@ UNVERIFIABLE = frozenset(
 
 @dataclass
 class VerificationInputs:
-    """Everything the policy needs that it cannot derive from the two documents."""
-
     base: Document
     candidate: Document
     delta: ComputedEditDelta
@@ -58,5 +51,4 @@ class _Accumulator:
 
 
 def changed_kinds(delta: ComputedEditDelta) -> tuple[ChangeKind, ...]:
-    """The kinds of change present, for display beside the checks."""
     return tuple(sorted({change.kind for change in delta.changes}))

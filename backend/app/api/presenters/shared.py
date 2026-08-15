@@ -1,5 +1,3 @@
-"""Values every presenter needs, and nothing a single resource owns."""
-
 from __future__ import annotations
 
 from app.domain.errors import ErrorCode
@@ -25,7 +23,6 @@ def _author_names(csl: CSLItem | None) -> list[str]:
 
 
 def _https_only(url: str | None) -> str | None:
-    """Provider-supplied links are untrusted input; only https reaches the UI."""
     return url if url and url.startswith("https://") else None
 
 

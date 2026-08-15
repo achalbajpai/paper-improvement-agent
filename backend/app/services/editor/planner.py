@@ -1,24 +1,3 @@
-"""Deciding which paragraphs to shorten, and by how much.
-
-Deterministic and server-side. A model is not asked to plan the shortening,
-because a plan is a set of numbers and identifiers, and asking a model for
-numbers when arithmetic will do adds a failure mode for nothing.
-
-The allocation is proportional: every eligible paragraph loses the same fraction
-of its words. The alternative -- taking the whole reduction out of the longest
-paragraph -- hits the section's most substantive prose hardest, which is rarely
-what a researcher asking to trim a section means.
-
-Some paragraphs are ineligible, and each exclusion prevents a specific loss:
-
-* Too short to compress. Below the floor, "shorten this" becomes "delete a
-  sentence", which is a different edit.
-* Nothing but citations. Compressing a paragraph whose text is mostly markers
-  can only drop citations.
-
-Pure: no I/O.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -65,13 +44,6 @@ class ShortenPlan:
 def plan_shortening(
     section: Section, ratio: float | None = None, paragraph_id: str | None = None
 ) -> ShortenPlan:
-    """Allocate a reduction across a section's paragraphs, or across just one.
-
-    ``paragraph_id`` narrows the plan to a single paragraph. A command that named
-    one paragraph must not rewrite the twelve around it: the researcher would be
-    approving a diff far larger than the edit they asked for, and the section's
-    other paragraphs were never in question.
-    """
     effective = _clamp(ratio if ratio is not None else DEFAULT_REDUCTION_RATIO)
 
     in_scope = [
@@ -134,9 +106,4 @@ def _ineligible(paragraph: Paragraph, ratio: float) -> str:
 
 
 def _clamp(ratio: float) -> float:
-    """Keep the reduction inside a range a rewrite can actually honour.
-
-    A request to halve a section is a request to delete content, and this system
-    does not delete content it was not explicitly asked to delete.
-    """
     return min(0.5, max(0.05, ratio))

@@ -1,18 +1,3 @@
-"""The DeltaEngine: what actually changed, computed from the two documents.
-
-This module never reads the model's account of what it did, and never reads the
-editing code's account either. Both come from the same step, so neither can check
-the other.
-
-The failure this exists to catch is specific and ordinary: a model asked to
-shorten a paragraph reports "removed two sentences" and has also dropped a
-citation. The report is clean, the mutation is not, and only an independent
-comparison of the before and after ASTs can tell the difference. Everything the
-UI shows and everything verification decides is derived from here.
-
-Pure: no I/O, no network, no database.
-"""
-
 from __future__ import annotations
 
 from app.domain.block import PreservedBlock
@@ -23,7 +8,6 @@ from app.domain.hashing import canonical_sha256, text_sha256
 
 
 def compute_delta(before: Document, after: Document) -> ComputedEditDelta:
-    """Compare two snapshots and report every difference."""
     changes: list[Change] = []
     changes.extend(_section_changes(before, after))
     changes.extend(_paragraph_changes(before, after))
@@ -50,12 +34,6 @@ def compute_delta(before: Document, after: Document) -> ComputedEditDelta:
 
 
 def _words_in(document: Document, paragraph_ids: set[str]) -> int:
-    """Words in a named subset of paragraphs.
-
-    A paragraph absent from one side contributes nothing to that side, so an
-    added or removed paragraph counts as the zero it is rather than being left
-    out of both totals.
-    """
     return sum(
         paragraph.word_count()
         for paragraph in document.paragraphs()
@@ -104,12 +82,6 @@ def _paragraph_changes(before: Document, after: Document) -> list[Change]:
 
 
 def _paragraph_hash(paragraph: Paragraph) -> str:
-    """Prose identity, whitespace-insensitive.
-
-    Citation structure is compared separately, so a paragraph whose only change
-    is a dropped citation reports as a citation removal rather than as a
-    rewording, which is what the researcher needs to see.
-    """
     return text_sha256(paragraph.text)
 
 
@@ -166,11 +138,6 @@ def _citation_changes(before: Document, after: Document) -> list[Change]:
 
 
 def _citation_homes(document: Document) -> dict[str, str]:
-    """Which paragraph each occurrence currently sits in.
-
-    An occurrence absent from every paragraph has no entry here at all, which is
-    what lets the caller distinguish a relocation from a disappearance.
-    """
     homes: dict[str, str] = {}
     for paragraph in document.paragraphs():
         for citation_id in paragraph.citation_ids:
@@ -179,7 +146,6 @@ def _citation_homes(document: Document) -> dict[str, str]:
 
 
 def _describe(node: CitationNode) -> str:
-    """Identifiers only; never the manuscript's surrounding prose."""
     return ", ".join(node.reference_ids) or "unlinked"
 
 
@@ -210,12 +176,6 @@ def _reference_changes(before: Document, after: Document) -> list[Change]:
 
 
 def _block_changes(before: Document, after: Document) -> list[Change]:
-    """Any block difference at all.
-
-    No supported edit touches a preserved block, so every change reported here
-    is a bug in the editing path rather than a decision the researcher should be
-    asked about. Verification treats them as blockers.
-    """
     changes: list[Change] = []
     for block_id, block in before.blocks.items():
         revised = after.blocks.get(block_id)

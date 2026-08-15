@@ -1,11 +1,3 @@
-"""HTTP request and response shapes.
-
-Enums reach the generated TypeScript client from here, so the UI never retypes a
-status or an error code as a string literal. That is the whole point of
-generating the client rather than hand-writing interfaces: a renamed enum member
-becomes a compile error in the frontend instead of a silently dead branch.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -45,8 +37,6 @@ class ErrorDetail(BaseModel):
 
 
 class ErrorEnvelope(BaseModel):
-    """Every non-2xx response body. One shape, always."""
-
     error: ErrorDetail
 
 
@@ -89,13 +79,6 @@ class ParseQualityBlocks(BaseModel):
 
 
 class ParseQualityLinkage(BaseModel):
-    """How marker-to-bibliography linkage held up under independent checking.
-
-    ``checked`` is the honest denominator: items where a second, unrelated signal
-    existed at all. Reporting accuracy over every item would quietly count
-    unverifiable ones as successes.
-    """
-
     family: str
     checked: int
     agreed: int
@@ -110,13 +93,6 @@ class ParseQualityLinkage(BaseModel):
 
 
 class ParseQuality(BaseModel):
-    """What the parse got, and what it did not.
-
-    Surfaced before any review or edit, because a researcher deciding whether to
-    trust this tool needs the extraction's limits stated up front rather than
-    discovered at export.
-    """
-
     sections: int
     paragraphs: int
     words: int
@@ -138,14 +114,6 @@ class SetCitationStyleRequest(BaseModel):
 
 
 class InlineCitation(BaseModel):
-    """One citation occurrence, as the reader saw it and as the parser understood it.
-
-    ``raw_marker`` is what the author wrote and is always shown. The structured
-    fields say how much of it was understood, so a marker the parser could only
-    keep verbatim is visibly different from one it resolved -- rather than both
-    rendering as confident-looking brackets.
-    """
-
     citation_id: str
     raw_marker: str
     reference_ids: list[str] = Field(default_factory=list)
@@ -155,8 +123,6 @@ class InlineCitation(BaseModel):
 
 
 class InlineRun(BaseModel):
-    """One span of a paragraph: prose, or a citation occurrence."""
-
     kind: Literal["text", "citation"]
     text: str = ""
     citation: InlineCitation | None = None
@@ -178,13 +144,6 @@ class SectionOut(BaseModel):
 
 
 class ReferenceOut(BaseModel):
-    """One bibliography entry, in the state the pipeline left it.
-
-    Normalisation status and resolution method travel with the entry because a
-    reference that is present but unresolved supports a different kind of trust
-    than one matched to a provider record by DOI.
-    """
-
     id: str
     bibliography_order: int
     title: str | None = None
@@ -202,14 +161,6 @@ class ReferenceOut(BaseModel):
 
 
 class ManuscriptOut(BaseModel):
-    """The parsed manuscript, in a shape built for reading rather than for storage.
-
-    Deliberately not the stored ``Document``: that carries preserved blocks,
-    hashes, and per-item citation structure a reader has no use for, and shipping
-    it would make the storage model a public contract that could not then be
-    changed without breaking clients.
-    """
-
     paper_id: str
     revision_id: str
     revision_number: int
@@ -241,13 +192,6 @@ class ClaimLocation(BaseModel):
 
 
 class SuggestedWork(BaseModel):
-    """A work the manuscript does not cite, as the provider described it.
-
-    Every field is read from the snapshotted ``source_records`` row, so a
-    suggestion the researcher cannot look up cannot be rendered. ``rationale``
-    is the only model-authored string here and is labelled as interpretation.
-    """
-
     source_record_id: str
     title: str
     authors: list[str] = Field(default_factory=list)
@@ -336,8 +280,6 @@ class SkippedParagraphOut(BaseModel):
 
 
 class EditScopeOut(BaseModel):
-    """Which part of the paper the command was resolved to, before it ran."""
-
     section_id: str
     section_title: str = ""
     paragraph_id: str | None = None
@@ -420,13 +362,6 @@ class PreflightItem(BaseModel):
 
 
 class ExportPreflight(BaseModel):
-    """What export will and will not be able to do, before it is started.
-
-    Blockers and acknowledgeable warnings are separate lists because they are
-    different questions: one is "this cannot be done", the other is "this can be
-    done at a cost you must accept".
-    """
-
     revision_id: str
     citation_style: CitationStyle | None
     can_export: bool

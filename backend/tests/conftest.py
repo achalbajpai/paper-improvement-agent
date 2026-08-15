@@ -1,13 +1,3 @@
-"""Shared fixtures.
-
-The TEI fixtures are the real output of the pinned GROBID build on the three
-corpus PDFs, with their hashes recorded in ``fixtures/manifest.json``. Parsing
-tests run against them rather than against
-hand-written TEI, because hand-written TEI encodes what we *believe* GROBID does,
-and every interesting bug in this pipeline lives in the gap between that belief
-and the real output.
-"""
-
 from __future__ import annotations
 
 import json
@@ -56,12 +46,6 @@ def corpus_name(request: pytest.FixtureRequest) -> str:
 
 @pytest.fixture(scope="session")
 def database() -> Iterator[None]:
-    """Ensure the schema exists. Skips the suite when Postgres is not reachable.
-
-    Database-backed tests run inside the ``api`` container, where Postgres is a
-    service. Outside it they skip rather than fail, so ``pytest`` on a laptop
-    still runs the pure tests.
-    """
     if not check_database():
         pytest.skip("Postgres is not reachable; database tests run inside the api container")
     init_db()
@@ -70,14 +54,6 @@ def database() -> Iterator[None]:
 
 @pytest.fixture
 def db(database: None) -> Iterator[Session]:
-    """A session whose writes are discarded.
-
-    Each test runs inside a transaction that is rolled back, including anything
-    the code under test committed: the session is joined to an outer connection
-    transaction, so a ``commit()`` inside a service ends a savepoint rather than
-    the real one. Tests therefore exercise the real commit path without leaving
-    rows behind for the next test to trip over.
-    """
     connection = get_engine().connect()
     transaction = connection.begin()
     session = Session(bind=connection, join_transaction_mode="create_savepoint")
@@ -91,7 +67,6 @@ def db(database: None) -> Iterator[Session]:
 
 @pytest.fixture
 def stored_paper(db: Session) -> Paper:
-    """A parsed paper backed by a real corpus TEI, without running GROBID."""
     document = validated("A_numeric").document
     paper = Paper(
         id=new_id("paper"),

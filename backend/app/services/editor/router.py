@@ -1,17 +1,3 @@
-"""Routing a natural-language command to one supported intent.
-
-The model classifies; the server decides. Every identifier the router returns is
-checked against the actual document before anything is planned, so a plausible
-but non-existent section id becomes a typed error rather than an edit applied
-somewhere else.
-
-Unsupported and ambiguous are first-class outcomes, not failures to work around.
-A researcher who asks for something this system cannot do is told exactly that,
-and a command that does not say which section it means is sent back with the
-choice rather than resolved by guessing -- guessing here means silently editing a
-part of the paper nobody asked about.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -42,13 +28,6 @@ def route(
     target_section_id: str | None = None,
     target_paragraph_id: str | None = None,
 ) -> RoutedCommand:
-    """Classify one command, validating every identifier against the document.
-
-    A target supplied by the caller is the researcher's own choice, made by
-    pointing at the paper rather than describing it, so it wins over whatever the
-    model reads out of the prose. The model still classifies the intent and the
-    ratio; it simply stops being asked to resolve a "this" it can only guess at.
-    """
     outline = [(section.id, section.title) for section in document.sections]
     sections = Allowlist("section", {section.id: section for section in document.sections})
     paragraphs = Allowlist(
@@ -112,12 +91,6 @@ def route(
 
 
 def _validated[T](allowlist: Allowlist[T], value: str | None, *, prompt: str) -> str | None:
-    """A caller-supplied id is still checked against the document.
-
-    The UI builds these from a manuscript it fetched, which can be a revision
-    behind by the time the command arrives, so an id that no longer exists is an
-    ordinary outcome rather than an attack.
-    """
     if value is None:
         return None
     allowlist.resolve(value, prompt=prompt)
@@ -125,7 +98,6 @@ def _validated[T](allowlist: Allowlist[T], value: str | None, *, prompt: str) ->
 
 
 def _named(document: Document, text: str) -> str:
-    """Swap internal section ids for the titles the researcher can see."""
     for section in document.sections:
         if not section.title:
             continue
@@ -135,7 +107,6 @@ def _named(document: Document, text: str) -> str:
 
 
 def _describe(document: Document, section_id: str | None, paragraph_id: str | None) -> str | None:
-    """The chosen target, named the way the researcher saw it."""
     if section_id is None:
         return None
     section = document.section(section_id)

@@ -1,11 +1,3 @@
-"""Post-hoc explanation: one LLM call, one schema, one versioned prompt.
-
-The explanation is generated *from the computed delta*, after the mutation, and
-is shown beside it rather than instead of it. It is never authoritative: if the
-explanation and the DeltaEngine disagree, the DeltaEngine is right and the
-explanation is a presentation defect.
-"""
-
 from __future__ import annotations
 
 from pydantic import BaseModel, Field

@@ -1,15 +1,3 @@
-"""Fetch the evaluation corpus from arXiv.
-
-Three real papers chosen for *parser generality*, not convenience: a numeric
-marker family, an author-year family, and a third layout. The acceptance paper
-is chosen from this corpus after parse quality is measured, because it must have
-zero unrenderable blocks and zero partial modifiers.
-
-The PDFs are not committed (they are large and redistributable only from arXiv);
-this script and the recorded sha256 in the corpus manifest make the corpus
-reproducible.
-"""
-
 from __future__ import annotations
 
 import hashlib

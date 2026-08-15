@@ -1,9 +1,3 @@
-"""GROBID HTTP adapter.
-
-GROBID produces an extraction *hypothesis*. This application validates it (see
-services/parser/postvalidator.py); nothing here treats TEI as ground truth.
-"""
-
 from __future__ import annotations
 
 import httpx
@@ -48,11 +42,6 @@ class GrobidClient:
         return data
 
     def process_fulltext(self, pdf_bytes: bytes, timeout: float | None = None) -> str:
-        """Return TEI XML for one PDF.
-
-        ``timeout`` receives the *remaining* operation budget rather than a fresh
-        one, so nested calls cannot sum past the operation deadline.
-        """
         effective_timeout = timeout if timeout is not None else self.timeout
         try:
             response = httpx.post(

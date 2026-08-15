@@ -1,11 +1,3 @@
-"""Recover visual source assets for non-prose blocks.
-
-GROBID gives us logical TEI and, when requested, coordinates in the original
-PDF. It does not give the exporter trustworthy TeX for formulas or image bytes
-for every figure. This module keeps those concerns separate: source crops are
-derived from the uploaded PDF, never guessed from flattened TEI text.
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -27,12 +19,6 @@ _PYMUPDF_RECT = cast(Any, pymupdf.Rect)
 
 
 def attach_source_assets(document: Document, pdf_path: Path, storage_root: Path) -> Document:
-    """Render coordinate-backed blocks from the original PDF.
-
-    A block is cropped only when all of its coordinates are on one page. A
-    multi-page or malformed coordinate set is left untouched and remains
-    visible to export preflight as a reconstructed/unrenderable block.
-    """
     candidates = [
         block
         for block in document.blocks.values()
@@ -104,14 +90,6 @@ def attach_source_assets(document: Document, pdf_path: Path, storage_root: Path)
 
 
 def _figure_image_clip(page: pymupdf.Page, source: pymupdf.Rect) -> pymupdf.Rect | None:
-    """Recover raster figures whose image blocks are embedded in the PDF.
-
-    GROBID's ``graphic`` coordinates are the image rectangle for bitmap figures,
-    not a path returned by ``Page.get_drawings``.  The old vector-only lookup
-    therefore marked valid raster figures as missing.  Include image blocks
-    that overlap the supplied rectangle and sibling subfigures in the same
-    vertical band (for example the two panels of Figure 2 in A_numeric).
-    """
     image_rects: list[pymupdf.Rect] = []
     try:
         blocks = cast(Any, page.get_text)("dict").get("blocks", [])
@@ -161,7 +139,6 @@ def _vertical_overlap_ratio(left: pymupdf.Rect, right: pymupdf.Rect) -> float:
 
 
 def _figure_drawing_clip(page: pymupdf.Page, caption: pymupdf.Rect) -> pymupdf.Rect | None:
-    """Find the vector-art cluster immediately above a figure caption."""
     candidates: list[pymupdf.Rect] = []
     try:
         drawings = page.get_drawings()
@@ -218,7 +195,6 @@ def _figure_drawing_clip(page: pymupdf.Page, caption: pymupdf.Rect) -> pymupdf.R
 
 
 def _figure_artwork_top(page: pymupdf.Page, caption: pymupdf.Rect, cluster_y0: float) -> float:
-    """Include labels that sit just above the vector drawing cluster."""
     artwork_y0 = cluster_y0
     try:
         text_blocks = cast(Any, page.get_text)("dict").get("blocks", [])
@@ -239,7 +215,6 @@ def _figure_artwork_top(page: pymupdf.Page, caption: pymupdf.Rect, cluster_y0: f
 
 
 def _table_content_clip(page: pymupdf.Page, source: pymupdf.Rect) -> pymupdf.Rect:
-    """Keep a table crop's caption in the semantic caption, not in the image."""
     bottom = source.y1
     try:
         text_blocks = cast(Any, page.get_text)("dict").get("blocks", [])

@@ -1,5 +1,3 @@
-"""HTTP translation for papers. Workflow implementations live in services/."""
-
 from __future__ import annotations
 
 from typing import Annotated
@@ -74,12 +72,6 @@ def get_paper(session: SessionDep, paper_id: str) -> PaperDetail:
 
 @router.get("/papers/{paper_id}/manuscript", response_model=ManuscriptOut)
 def get_manuscript(session: SessionDep, paper_id: str) -> ManuscriptOut:
-    """The current revision's parsed content.
-
-    Separate from ``GET /papers/{id}`` because it is a different size of thing:
-    the detail response is polled after every operation, and a whole manuscript
-    does not belong in it.
-    """
     paper = repositories.get_paper(session, paper_id)
     revision = repositories.get_current_revision(session, paper)
     resolutions = {
@@ -125,11 +117,6 @@ def parse_paper(
 def set_citation_style(
     session: SessionDep, paper_id: str, request: SetCitationStyleRequest
 ) -> PaperDetail:
-    """The researcher decides the style; detection only suggested one.
-
-    Not idempotency-keyed: PATCH with a literal value is naturally idempotent,
-    and requiring a key for a preference toggle would be ceremony without safety.
-    """
     paper = repositories.get_paper(session, paper_id)
     paper.citation_style = request.citation_style.value
     session.commit()
