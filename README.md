@@ -6,6 +6,9 @@ OpenAlex, then edit it by instruction and export the result.
 The two things I cared most about getting right: suggestions always come from a
 real source you can open, and no edit lands without you seeing what it changed.
 
+<img width="1078" height="874" alt="image" src="https://github.com/user-attachments/assets/fc4a0660-2f44-42d5-95be-181aa08b345d" />
+
+
 ## Run locally
 
 Needs Docker Desktop and an LLM API key. A Semantic Scholar key is free and
@@ -26,7 +29,6 @@ make test        # backend and frontend
 make test-slow   # real GROBID plus the acceptance end-to-end test
 make lint
 make typecheck
-make eval        # parser evaluation against the labelled corpus
 make live-smoke  # live model and providers; needs keys
 ```
 
@@ -66,13 +68,14 @@ style files. Output is Markdown, LaTeX, PDF, and `references.json`.
 - The novelty check on a rewrite is a model judgement, not a proof. The diff you
   approve is the real last gate. `SHORTEN_EXTRACTIVE_ONLY=true` falls back to
   deleting whole sentences instead of rewriting.
+  - Missing API key due to request period of 7 days for SEMANTIC_SCHOLAR_API_KEY=... , had submited the form.
 - Parsing was tested on numeric and author-year papers. Some names, years, and
   awkward markers still come out uncertain - those are marked, not hidden.
 - Style is detected to a family, not an exact style, so you pick within it. Only
   APA and IEEE ship.
 - Export is a re-typeset manuscript. Figures, tables, and page layout will not
-  match the original PDF.
-- No auth or tenant isolation - it is a single-user take-home.
+  exactly match.
+- No auth or tenant isolation - it is a single-user.
 
 **To make this production ready:** auth and tenant isolation, long operations
 moved onto a durable queue with workers, object storage with a real lifecycle
@@ -82,15 +85,10 @@ papers, and per-paragraph acceptance on a multi-paragraph edit.
 
 ## AI use
 
-I used AI coding tools heavily - most of the code here was written with them.
+I used AI coding tools for most of the code here was written with them.
 What I brought was the design: where the trust boundaries sit, what the system
-should refuse to do, and which failures to show rather than smooth over. A few of
-those went against the first version I was handed, like not emitting an
-"unsupported" verdict when the real answer is that we found no evidence either
-way.
+should refuse to do, and which failures to show rather than smooth over. Architected and iterated over that and make sure everything is covered via tests.
 
-Since the model wrote the code, I tried not to let it also be the judge of
-whether the code is right:
 
 - Recorded GROBID and provider fixtures, so dependency behaviour is checked
   against real captured responses.
